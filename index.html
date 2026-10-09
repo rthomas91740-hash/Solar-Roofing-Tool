@@ -23,7 +23,7 @@
       border-radius: 8px;
       margin-bottom: 14px;
     }
-    #photoType {
+    #photoStage, #photoSubject {
       width: 100%;
       max-width: 320px;
       box-sizing: border-box;
@@ -32,6 +32,13 @@
       border: 1px solid #ccc;
       border-radius: 8px;
       margin-bottom: 14px;
+    }
+    #groupNote {
+      max-width: 320px;
+      margin: 0 auto 8px auto;
+      font-size: 13px;
+      color: #666;
+      text-align: left;
     }
     #picCounterNote {
       max-width: 320px;
@@ -88,11 +95,27 @@
   <h2>New Job Photo</h2>
 
   <input type="text" id="jobNumber" placeholder="Job # / Work Order #">
-  <select id="photoType">
-    <option value="BOL">BOL</option>
-    <option value="Receipt">Receipt</option>
+  <select id="photoStage">
+    <option value="">Stage...</option>
+    <option value="Before">Before</option>
+    <option value="During">During</option>
+    <option value="After">After</option>
+  </select>
+  <select id="photoSubject">
+    <option value="">What is the photo of?</option>
+    <option value="NorthSlope">Roof - North Slope</option>
+    <option value="SouthSlope">Roof - South Slope</option>
+    <option value="EastSlope">Roof - East Slope</option>
+    <option value="WestSlope">Roof - West Slope</option>
+    <option value="SolarPanels">Solar Panels</option>
+    <option value="Damage">Damage</option>
+    <option value="Meter">Meter</option>
+    <option value="BreakerBox">Breaker / Circuit Box</option>
+    <option value="Inverter">Inverter</option>
+    <option value="Permit">Permit</option>
     <option value="Other">Other</option>
   </select>
+  <div id="groupNote"></div>
   <div id="picCounterNote"></div>
 
   <!-- Used for BOTH buttons below — no "capture" attribute on the fallback
@@ -117,6 +140,7 @@
     var selectedBlob = null;
     var deviceId = null;
     var driverId = null;
+    var deviceGroupNames = null; // null = not looked up yet, [] = none found
 
     // Auto "Pic N" numbering — tracks the last Job # a photo was uploaded
     // under, in this session only. As long as the driver keeps the same
@@ -135,7 +159,9 @@
 
     function main() {
       var jobNumberEl = document.getElementById('jobNumber');
-      var photoTypeEl = document.getElementById('photoType');
+      var photoStageEl = document.getElementById('photoStage');
+      var photoSubjectEl = document.getElementById('photoSubject');
+      var groupNoteEl = document.getElementById('groupNote');
       var picCounterNoteEl = document.getElementById('picCounterNote');
       var fileInputCamera = document.getElementById('fileInputCamera');
       var fileInputLibrary = document.getElementById('fileInputLibrary');
@@ -151,8 +177,31 @@
           jobNumberEl.focus();
           return false;
         }
+        if (!photoStageEl.value) {
+          statusEl.textContent = 'Pick the Stage first (Before / During / After).';
+          photoStageEl.focus();
+          return false;
+        }
+        if (!photoSubjectEl.value) {
+          statusEl.textContent = 'Pick what the photo is of first.';
+          photoSubjectEl.focus();
+          return false;
+        }
         return true;
       }
+
+      // Shows which Geotab group(s) this truck is in, so the crew (and you,
+      // while testing) can see the division is being picked up automatically.
+      window.showGroupNote = function () {
+        if (deviceGroupNames === null) {
+          groupNoteEl.textContent = 'Truck group: looking up...';
+        } else if (!deviceGroupNames.length) {
+          groupNoteEl.textContent = 'Truck group: (none found)';
+        } else {
+          groupNoteEl.textContent = 'Truck group: ' + deviceGroupNames.join(', ');
+        }
+      };
+      window.showGroupNote();
 
       function updatePicCounterNote() {
         var job = jobNumberEl.value.trim();
@@ -239,7 +288,7 @@
         var job = jobNumberEl.value.trim();
         var picNumber = (job === lastUploadedJobNumber) ? (picCounter + 1) : 1;
 
-        uploadPhoto(selectedBlob, job, photoTypeEl.value, picNumber, statusEl, function () {
+        uploadPhoto(selectedBlob, job, photoStageEl.value, photoSubjectEl.value, picNumber, statusEl, function () {
           // On success only — record the counter advance and reset for
           // the next photo. On failure, do NOT advance, so a retry gets
           // the same Pic number rather than skipping one.
@@ -253,6 +302,7 @@
           uploadBtn.style.display = 'none';
           selectedBlob = null;
           preview.style.display = 'none';
+          photoSubjectEl.value = ''; // Stage stays; Subject must be picked again for the next photo
           updatePicCounterNote();
         }, function () {
           isUploading = false;
@@ -305,6 +355,41 @@
       }
     }
 
+    // Looks up the truck's custom Geotab groups (e.g. "New Roof - Construction")
+    // and caches their names. Built-in system groups (Company, Vehicles, etc.)
+    // are skipped. If the driver's account isn't allowed to read groups, this
+    // quietly ends with an empty list and photos still upload normally.
+    function lookupDeviceGroups(done) {
+      if (deviceGroupNames !== null) { if (done) done(); return; }
+      if (!geotabApi || !deviceId) { if (done) done(); return; }
+      var finished = false;
+      function finish(names) {
+        if (finished) return;
+        finished = true;
+        deviceGroupNames = names || [];
+        if (window.showGroupNote) window.showGroupNote();
+        if (done) done();
+      }
+      setTimeout(function () { finish([]); }, 6000);
+      try {
+        geotabApi.call('Get', { typeName: 'Device', search: { id: deviceId } }, function (devices) {
+          var groups = (devices && devices[0] && devices[0].groups) || [];
+          var ids = groups.map(function (g) { return g.id; }).filter(function (id) {
+            return id && !/^Group[A-Za-z]+Id$/.test(id);
+          });
+          if (!ids.length) { finish([]); return; }
+          var calls = ids.map(function (id) { return ['Get', { typeName: 'Group', search: { id: id } }]; });
+          geotabApi.multiCall(calls, function (results) {
+            var names = [];
+            results.forEach(function (res) {
+              if (res && res[0] && res[0].name) names.push(res[0].name);
+            });
+            finish(names);
+          }, function () { finish([]); });
+        }, function () { finish([]); });
+      } catch (e) { finish([]); }
+    }
+
     function fetchSession(onReady) {
       geotabApi.getSession(function (session) {
         sessionInfo = {
@@ -317,36 +402,50 @@
       });
     }
 
-    function uploadPhoto(blob, jobNumber, photoType, picNumber, statusEl, onSuccess, onError) {
+    function uploadPhoto(blob, jobNumber, stage, subject, picNumber, statusEl, onSuccess, onError) {
       // Cap the Job # portion — Geotab's MediaFile name field has a hard
-      // 128-character limit, and a very long Job # (someone typing a full
-      // route description instead of a short job number) can leave zero
-      // headroom for the "-ARCHIVED" suffix added later, breaking Archive.
-      // 60 characters leaves comfortable room for everything else.
-      var MAX_JOB_LENGTH = 60;
+      // 128-character limit, and "-ARCHIVED" gets added later. Stage and
+      // Subject words are longer than the old BOL/Receipt types, so the cap
+      // is 40 here (it was 60) to keep every name safely under 128.
+      var MAX_JOB_LENGTH = 40;
       var safeJob = jobNumber.replace(/[^a-z0-9\-_]/gi, '_').slice(0, MAX_JOB_LENGTH);
-      var label = 'Pic_' + picNumber;
-      var fileName = 'job-' + safeJob + '-type-' + photoType + '-label-' + label + '-' + Date.now() + '.jpg';
+      var label = subject + '_Pic_' + picNumber;
+      var fileName = 'job-' + safeJob + '-type-' + stage + '-label-' + label + '-' + Date.now() + '.jpg';
 
-      var entity = {
-        name: fileName,
-        solutionId: SOLUTION_ID,
-        fromDate: new Date().toISOString(),
-        toDate: new Date().toISOString()
-      };
-      if (deviceId) entity.device = { id: deviceId };
-      if (driverId) entity.driver = { id: driverId };
+      function buildAndAdd() {
+        var entity = {
+          name: fileName,
+          solutionId: SOLUTION_ID,
+          fromDate: new Date().toISOString(),
+          toDate: new Date().toISOString(),
+          // Extra details saved with the photo. The gallery reads "groups"
+          // from here to show and filter by division.
+          metaData: {
+            app: 'fleetwolf-roofsolar',
+            v: 1,
+            job: jobNumber,
+            stage: stage,
+            subject: subject,
+            groups: deviceGroupNames || []
+          }
+        };
+        if (deviceId) entity.device = { id: deviceId };
+        if (driverId) entity.driver = { id: driverId };
 
-      geotabApi.call('Add', {
-        typeName: 'MediaFile',
-        entity: entity
-      }, function (mediaFileId) {
-        statusEl.textContent = 'Uploading image...';
-        doMultipartUpload(mediaFileId, fileName, blob, statusEl, onSuccess, onError, true);
-      }, function (err) {
-        statusEl.textContent = 'Error creating record: ' + err;
-        onError();
-      });
+        geotabApi.call('Add', {
+          typeName: 'MediaFile',
+          entity: entity
+        }, function (mediaFileId) {
+          statusEl.textContent = 'Uploading image...';
+          doMultipartUpload(mediaFileId, fileName, blob, statusEl, onSuccess, onError, true);
+        }, function (err) {
+          statusEl.textContent = 'Error creating record: ' + err;
+          onError();
+        });
+      }
+
+      // Make sure the truck's group is known before saving (usually already is).
+      lookupDeviceGroups(buildAndAdd);
     }
 
     // allowSessionRetry: if the upload fails specifically because the
@@ -410,6 +509,21 @@
       }
     }
 
+    function startGroupLookupWhenReady() {
+      var tries = 0;
+      var timer = setInterval(function () {
+        tries++;
+        if (deviceId) {
+          clearInterval(timer);
+          lookupDeviceGroups();
+        } else if (tries >= 20) {
+          clearInterval(timer);
+          deviceGroupNames = [];
+          if (window.showGroupNote) window.showGroupNote();
+        }
+      }, 500);
+    }
+
     geotab.addin.fleetWolfRoofSolarCapture = function () {
       return {
         initialize: function (api, state, callback) {
@@ -420,6 +534,7 @@
           main();
           fetchSession();
           resolveVehicleAndDriver();
+          startGroupLookupWhenReady();
         },
         focus: function (api, state) {},
         blur: function () {}

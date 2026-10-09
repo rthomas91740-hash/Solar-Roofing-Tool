@@ -94,10 +94,27 @@
     <button id="refreshBtn" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;background:#eee;cursor:pointer;">Refresh</button>
     <input type="date" id="dateFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
     <input type="text" id="jobFilter" placeholder="Filter by Job #" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
-    <select id="typeFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
-      <option value="">All Types</option>
-      <option value="BOL">BOL</option>
-      <option value="Receipt">Receipt</option>
+    <select id="groupFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
+      <option value="">All Groups</option>
+    </select>
+    <select id="stageFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
+      <option value="">All Stages</option>
+      <option value="Before">Before</option>
+      <option value="During">During</option>
+      <option value="After">After</option>
+    </select>
+    <select id="subjectFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
+      <option value="">All Subjects</option>
+      <option value="NorthSlope">Roof - North Slope</option>
+      <option value="SouthSlope">Roof - South Slope</option>
+      <option value="EastSlope">Roof - East Slope</option>
+      <option value="WestSlope">Roof - West Slope</option>
+      <option value="SolarPanels">Solar Panels</option>
+      <option value="Damage">Damage</option>
+      <option value="Meter">Meter</option>
+      <option value="BreakerBox">Breaker / Circuit Box</option>
+      <option value="Inverter">Inverter</option>
+      <option value="Permit">Permit</option>
       <option value="Other">Other</option>
     </select>
     <button id="selectVisibleBtn" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;background:#eee;cursor:pointer;">✅ Select Visible</button>
@@ -112,15 +129,16 @@
     <span id="status" style="color:#666;"></span>
   </div>
 
-  <table id="photoTable" style="border-collapse:collapse;width:100%;max-width:900px;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.1);border-radius:8px;">
+  <table id="photoTable" style="border-collapse:collapse;width:100%;max-width:1150px;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.1);border-radius:8px;">
     <thead>
       <tr>
         <th style="text-align:center;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;width:36px;">
           <input type="checkbox" id="selectAllCheckbox">
         </th>
         <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Job #</th>
-        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Type</th>
-        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Label</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Group</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Stage</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Subject</th>
         <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Date</th>
         <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Vehicle</th>
         <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Driver</th>
@@ -146,7 +164,9 @@
       document.getElementById('refreshBtn').addEventListener('click', loadPhotos);
       document.getElementById('dateFilter').addEventListener('change', loadPhotos);
       document.getElementById('jobFilter').addEventListener('input', renderFilteredTable);
-      document.getElementById('typeFilter').addEventListener('change', renderFilteredTable);
+      document.getElementById('groupFilter').addEventListener('change', renderFilteredTable);
+      document.getElementById('stageFilter').addEventListener('change', renderFilteredTable);
+      document.getElementById('subjectFilter').addEventListener('change', renderFilteredTable);
       document.getElementById('selectAllCheckbox').addEventListener('change', function () {
         setAllVisibleChecked(this.checked);
       });
@@ -175,18 +195,79 @@
       document.getElementById('status').textContent = text;
     }
 
-    // Job # and Type were encoded into the filename at upload time, e.g.
-    // "job-4521-type-BOL-1699999999.jpg". Older photos (before Type existed)
-    // used "job-4521-1699999999.jpg" — still parsed correctly, just with no type.
+    var SUBJECT_TEXT = {
+      NorthSlope: 'Roof - North Slope',
+      SouthSlope: 'Roof - South Slope',
+      EastSlope: 'Roof - East Slope',
+      WestSlope: 'Roof - West Slope',
+      SolarPanels: 'Solar Panels',
+      Damage: 'Damage',
+      Meter: 'Meter',
+      BreakerBox: 'Breaker / Circuit Box',
+      Inverter: 'Inverter',
+      Permit: 'Permit',
+      Other: 'Other'
+    };
+
+    // Job #, Stage and Subject are encoded into the filename at upload time,
+    // e.g. "job-4521-type-Before-label-NorthSlope_Pic_1-1699999999.jpg".
+    // "type" holds the Stage; "label" holds Subject + Pic number.
     function parseFileName(name) {
-      if (!name) return { job: '(none)', type: '(none)', label: '(none)' };
-      var withLabel = name.match(/^job-(.+)-type-(BOL|Receipt|Other)-label-(.+)-\d+(?:-ARCHIVED)?\.[a-z]+$/i);
-      if (withLabel) return { job: withLabel[1], type: withLabel[2], label: withLabel[3] };
-      var withType = name.match(/^job-(.+)-type-(BOL|Receipt|Other)-\d+(?:-ARCHIVED)?\.[a-z]+$/i);
-      if (withType) return { job: withType[1], type: withType[2], label: '(none)' };
-      var withoutType = name.match(/^job-(.+)-\d+(?:-ARCHIVED)?\.[a-z]+$/i);
-      if (withoutType) return { job: withoutType[1], type: '(none)', label: '(none)' };
-      return { job: '(none)', type: '(none)', label: '(none)' };
+      var none = { job: '(none)', type: '(none)', label: '(none)', subject: '(none)', subjectText: '(none)', pic: '' };
+      if (!name) return none;
+      var m = name.match(/^job-(.+)-type-([A-Za-z0-9]+)-label-(.+)-\d+(?:-ARCHIVED)?\.[a-z]+$/i);
+      if (!m) return none;
+      var label = m[3];
+      var subject = label;
+      var pic = '';
+      var lm = label.match(/^(.+?)_Pic_(\d+)$/);
+      if (lm) { subject = lm[1]; pic = lm[2]; }
+      return {
+        job: m[1],
+        type: m[2],
+        label: label,
+        subject: subject,
+        subjectText: (SUBJECT_TEXT[subject] || subject) + (pic ? ' (Pic ' + pic + ')' : ''),
+        pic: pic
+      };
+    }
+
+    // The truck's group name(s), saved with the photo when it was taken.
+    function groupsOf(record) {
+      var md = record && record.metaData;
+      if (md && typeof md === 'string') {
+        try { md = JSON.parse(md); } catch (e) { md = null; }
+      }
+      var g = md && md.groups;
+      return (g && g.length) ? g : [];
+    }
+
+    function groupText(record) {
+      var g = groupsOf(record);
+      return g.length ? g.join(', ') : '\u2014';
+    }
+
+    // Keeps the Group filter list in step with the groups found in the photos
+    // that were just loaded, and keeps the current choice if it still exists.
+    function refreshGroupFilter() {
+      var sel = document.getElementById('groupFilter');
+      var prev = sel.value;
+      var names = {};
+      currentRecords.forEach(function (r) {
+        groupsOf(r).forEach(function (n) { names[n] = true; });
+      });
+      sel.innerHTML = '';
+      var all = document.createElement('option');
+      all.value = '';
+      all.textContent = 'All Groups';
+      sel.appendChild(all);
+      Object.keys(names).sort().forEach(function (n) {
+        var o = document.createElement('option');
+        o.value = n;
+        o.textContent = n;
+        sel.appendChild(o);
+      });
+      sel.value = names[prev] ? prev : '';
     }
 
     function extractJobNumber(name) {
@@ -239,6 +320,7 @@
           return;
         }
         setStatus(currentRecords.length + ' photo(s) found.');
+        refreshGroupFilter();
         resolveNames(currentRecords);
       }, function (err) {
         setStatus('Error loading photos: ' + err);
@@ -287,7 +369,9 @@
 
     function renderFilteredTable() {
       var filterText = document.getElementById('jobFilter').value.trim().toLowerCase();
-      var typeFilter = document.getElementById('typeFilter').value;
+      var groupFilterVal = document.getElementById('groupFilter').value;
+      var stageFilter = document.getElementById('stageFilter').value;
+      var subjectFilter = document.getElementById('subjectFilter').value;
       var showArchived = document.getElementById('showArchivedToggle').checked;
       var body = document.getElementById('tableBody');
       body.innerHTML = '';
@@ -299,11 +383,13 @@
 
         var parsed = parseFileName(r.name);
         var jobNumber = parsed.job;
-        var photoType = parsed.type;
-        var photoLabel = parsed.label;
+        var photoStage = parsed.type;
+        var photoSubject = parsed.subjectText;
 
         if (filterText && jobNumber.toLowerCase().indexOf(filterText) === -1) return;
-        if (typeFilter && photoType !== typeFilter) return;
+        if (stageFilter && photoStage !== stageFilter) return;
+        if (subjectFilter && parsed.subject !== subjectFilter) return;
+        if (groupFilterVal && groupsOf(r).indexOf(groupFilterVal) === -1) return;
 
         var deviceName = (r.device && r.device.id && deviceNameCache[r.device.id]) || 'Unassigned';
         var driverName = (r.driver && r.driver.id && driverNameCache[r.driver.id]) || 'Unassigned';
@@ -323,7 +409,7 @@
         checkTd.appendChild(checkbox);
         tr.appendChild(checkTd);
 
-        [jobNumber, photoType, photoLabel, dateStr, deviceName, driverName].forEach(function (val) {
+        [jobNumber, groupText(r), photoStage, photoSubject, dateStr, deviceName, driverName].forEach(function (val) {
           var td = document.createElement('td');
           td.style.cssText = 'padding:14px 18px;font-size:14px;';
           td.textContent = val;
@@ -488,8 +574,8 @@
 
         var parsed = parseFileName(record.name);
         var jobNumber = parsed.job;
-        var photoType = parsed.type;
-        var photoLabel = parsed.label;
+        var photoStage = parsed.type;
+        var photoSubject = parsed.subjectText;
         var deviceName = (record.device && record.device.id && deviceNameCache[record.device.id]) || 'Unassigned';
         var driverName = (record.driver && record.driver.id && driverNameCache[record.driver.id]) || 'Unassigned';
         var dateStr = record.fromDate ? new Date(record.fromDate).toLocaleString() : 'Unknown date';
@@ -518,7 +604,7 @@
 
           var stampRow = document.createElement('div');
           stampRow.style.cssText = 'font-size:14px;margin-top:12px;';
-          stampRow.textContent = 'Job #: ' + jobNumber + '  |  Label: ' + photoLabel + '  |  Type: ' + photoType + '  |  Date: ' + dateStr + '  |  Vehicle: ' + deviceName + '  |  Driver: ' + driverName;
+          stampRow.textContent = 'Job #: ' + jobNumber + '  |  Group: ' + groupText(record) + '  |  Stage: ' + photoStage + '  |  Subject: ' + photoSubject + '  |  Date: ' + dateStr + '  |  Vehicle: ' + deviceName + '  |  Driver: ' + driverName;
 
           card.appendChild(img);
           card.appendChild(stampRow);
@@ -627,7 +713,7 @@
             attempt(record, retriesLeft - 1);
           } else {
             var errDiv = document.createElement('div');
-            errDiv.textContent = parseFileName(record.name).label + ' — photo failed to load';
+            errDiv.textContent = parseFileName(record.name).subjectText + ' — photo failed to load';
             photoCards[record.id] = errDiv;
             index++;
             next();
@@ -648,7 +734,7 @@
 
       var caption = document.createElement('div');
       caption.style.cssText = 'font-size:12px;color:#444;margin-top:4px;';
-      caption.textContent = parsed.label !== '(none)' ? parsed.label : '';
+      caption.textContent = parsed.subject !== '(none)' ? (parsed.type + ' - ' + parsed.subjectText) : '';
 
       var settled = false;
       var timer;
@@ -685,7 +771,7 @@
 
       var meta = document.createElement('div');
       meta.style.cssText = 'font-size:13px;color:#555;margin-bottom:20px;';
-      meta.textContent = 'Date: ' + dateStr + '  |  Vehicle: ' + deviceName + '  |  Driver: ' + driverName;
+      meta.textContent = 'Date: ' + dateStr + '  |  Group: ' + groupText(firstRecord) + '  |  Vehicle: ' + deviceName + '  |  Driver: ' + driverName;
       report.appendChild(meta);
 
       if (details) {
