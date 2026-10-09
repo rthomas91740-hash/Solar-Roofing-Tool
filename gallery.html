@@ -89,7 +89,7 @@
 </head>
 <body style="font-family:-apple-system,Arial,sans-serif;margin:0;padding:20px;background:#fafafa;color:#222;">
 
-  <h2 style="margin-top:0;">Roofing &amp; Solar Records</h2>
+  <h2 id="pageTitle" style="margin-top:0;">Roofing &amp; Solar Records</h2>
   <div id="toolbar" style="display:flex;gap:12px;align-items:center;margin-bottom:24px;flex-wrap:wrap;">
     <button id="refreshBtn" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;background:#eee;cursor:pointer;">Refresh</button>
     <input type="date" id="dateFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
@@ -562,7 +562,7 @@
       var index = 0;
 
       function updateProgress() {
-        printArea.innerHTML = '<p>Loading photo ' + (index + 1) + ' of ' + checked.length + ' for print...</p>';
+        setStatus('Loading photo ' + (index + 1) + ' of ' + checked.length + '...');
       }
 
       function processNext() {
@@ -655,20 +655,7 @@
         printArea.appendChild(card);
       });
 
-      var toolbar = document.getElementById('toolbar');
-      var table = document.getElementById('photoTable');
-      var prevToolbarDisplay = toolbar.style.display;
-      var prevTableDisplay = table.style.display;
-
-      toolbar.style.display = 'none';
-      table.style.display = 'none';
-      printArea.style.display = 'block';
-
-      window.print();
-
-      toolbar.style.display = prevToolbarDisplay;
-      table.style.display = prevTableDisplay;
-      printArea.style.display = 'none';
+      openPreview();
     }
 
     // Pulls together everything for one Job # on one specific day: any
@@ -702,7 +689,7 @@
           finishJobReport(jobNumber, details, jobRecords, photoCards);
           return;
         }
-        printArea.innerHTML = '<p>Loading photo ' + (index + 1) + ' of ' + jobRecords.length + ' for report...</p>';
+        setStatus('Loading photo ' + (index + 1) + ' of ' + jobRecords.length + ' for the report...');
         var record = jobRecords[index];
         attempt(record, 1);
       }
@@ -862,20 +849,74 @@
 
       printArea.appendChild(report);
 
+      openPreview();
+    }
+
+    // Shows the finished report / photo sheet on screen first. The office can
+    // read it, then choose Print (the print window also has "Save as PDF"),
+    // or go back to the list. Nothing is sent to the printer automatically.
+    var previewState = null;
+
+    function openPreview() {
       var toolbar = document.getElementById('toolbar');
       var table = document.getElementById('photoTable');
-      var prevToolbarDisplay = toolbar.style.display;
-      var prevTableDisplay = table.style.display;
+      var heading = document.getElementById('pageTitle');
+      var printArea = document.getElementById('printArea');
 
+      previewState = {
+        toolbar: toolbar.style.display,
+        table: table.style.display,
+        heading: heading ? heading.style.display : '',
+        status: document.getElementById('status').textContent
+      };
+      setStatus('');
       toolbar.style.display = 'none';
       table.style.display = 'none';
+      if (heading) heading.style.display = 'none';
+
+      var btnCss = 'padding:10px 16px;font-size:14px;border-radius:6px;cursor:pointer;';
+      var bar = document.createElement('div');
+      bar.id = 'previewBar';
+      bar.style.cssText = 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;padding:12px 0;border-bottom:1px solid #ddd;position:sticky;top:0;background:#fafafa;';
+
+      var backBtn = document.createElement('button');
+      backBtn.style.cssText = btnCss + 'border:1px solid #ccc;background:#eee;';
+      backBtn.textContent = '\u2190 Back to list';
+      backBtn.addEventListener('click', closePreview);
+
+      var printBtn = document.createElement('button');
+      printBtn.style.cssText = btnCss + 'border:none;background:#1a73e8;color:white;';
+      printBtn.textContent = '\ud83d\udda8\ufe0f Print / Save as PDF';
+      printBtn.addEventListener('click', function () {
+        bar.style.display = 'none';
+        window.print();
+        bar.style.display = 'flex';
+      });
+
+      var hint = document.createElement('span');
+      hint.style.cssText = 'font-size:13px;color:#666;';
+      hint.textContent = 'To keep a copy, click Print and choose "Save as PDF" as the destination.';
+
+      bar.appendChild(backBtn);
+      bar.appendChild(printBtn);
+      bar.appendChild(hint);
+      printArea.insertBefore(bar, printArea.firstChild);
       printArea.style.display = 'block';
+      window.scrollTo(0, 0);
+    }
 
-      window.print();
-
-      toolbar.style.display = prevToolbarDisplay;
-      table.style.display = prevTableDisplay;
+    function closePreview() {
+      var printArea = document.getElementById('printArea');
+      printArea.innerHTML = '';
       printArea.style.display = 'none';
+      if (previewState) {
+        document.getElementById('toolbar').style.display = previewState.toolbar;
+        document.getElementById('photoTable').style.display = previewState.table;
+        var heading = document.getElementById('pageTitle');
+        if (heading) heading.style.display = previewState.heading;
+        setStatus(previewState.status);
+        previewState = null;
+      }
     }
 
     function escapeHtml(text) {
