@@ -93,7 +93,7 @@
   <div id="toolbar" style="display:flex;gap:12px;align-items:center;margin-bottom:24px;flex-wrap:wrap;">
     <button id="refreshBtn" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;background:#eee;cursor:pointer;">Refresh</button>
     <input type="date" id="dateFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
-    <input type="text" id="jobFilter" placeholder="Filter by Job #" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
+    <input type="text" id="jobFilter" placeholder="Filter by Job # or Customer" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
     <select id="groupFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
       <option value="">All Groups</option>
     </select>
@@ -136,6 +136,7 @@
           <input type="checkbox" id="selectAllCheckbox">
         </th>
         <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Job #</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Customer</th>
         <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Group</th>
         <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Stage</th>
         <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Subject</th>
@@ -233,12 +234,16 @@
     }
 
     // The truck's group name(s), saved with the photo when it was taken.
-    function groupsOf(record) {
+    function metaOf(record) {
       var md = record && record.metaData;
       if (md && typeof md === 'string') {
         try { md = JSON.parse(md); } catch (e) { md = null; }
       }
-      var g = md && md.groups;
+      return (md && typeof md === 'object') ? md : {};
+    }
+
+    function groupsOf(record) {
+      var g = metaOf(record).groups;
       return (g && g.length) ? g : [];
     }
 
@@ -386,7 +391,8 @@
         var photoStage = parsed.type;
         var photoSubject = parsed.subjectText;
 
-        if (filterText && jobNumber.toLowerCase().indexOf(filterText) === -1) return;
+        var customerText = metaOf(r).customer || '';
+        if (filterText && jobNumber.toLowerCase().indexOf(filterText) === -1 && customerText.toLowerCase().indexOf(filterText) === -1) return;
         if (stageFilter && photoStage !== stageFilter) return;
         if (subjectFilter && parsed.subject !== subjectFilter) return;
         if (groupFilterVal && groupsOf(r).indexOf(groupFilterVal) === -1) return;
@@ -409,7 +415,7 @@
         checkTd.appendChild(checkbox);
         tr.appendChild(checkTd);
 
-        [jobNumber, groupText(r), photoStage, photoSubject, dateStr, deviceName, driverName].forEach(function (val) {
+        [jobNumber, customerText || '\u2014', groupText(r), photoStage, photoSubject, dateStr, deviceName, driverName].forEach(function (val) {
           var td = document.createElement('td');
           td.style.cssText = 'padding:14px 18px;font-size:14px;';
           td.textContent = val;
@@ -774,7 +780,32 @@
       meta.textContent = 'Date: ' + dateStr + '  |  Group: ' + groupText(firstRecord) + '  |  Vehicle: ' + deviceName + '  |  Driver: ' + driverName;
       report.appendChild(meta);
 
-      if (details) {
+      // Customer details typed on the phone (saved with each photo).
+      var info = {};
+      for (var k = 0; k < jobRecords.length; k++) {
+        var m = metaOf(jobRecords[k]);
+        if (m.customer && !info.customer) info.customer = m.customer;
+        if (m.account && !info.account) info.account = m.account;
+        if (m.address && !info.address) info.address = m.address;
+      }
+      var infoPairs = [['Customer', info.customer], ['Account #', info.account], ['Job Address', info.address]];
+      if (infoPairs.some(function (pair) { return pair[1]; })) {
+        var infoSection = document.createElement('div');
+        infoSection.style.cssText = 'margin-bottom:20px;padding:12px 14px;border:1px solid #ddd;border-radius:6px;';
+        infoPairs.forEach(function (pair) {
+          if (!pair[1]) return;
+          var row = document.createElement('div');
+          row.style.cssText = 'margin-bottom:4px;font-size:14px;';
+          var strong = document.createElement('strong');
+          strong.textContent = pair[0] + ': ';
+          row.appendChild(strong);
+          row.appendChild(document.createTextNode(pair[1]));
+          infoSection.appendChild(row);
+        });
+        report.appendChild(infoSection);
+      }
+
+      if (details && (details.description1 || details.description2 || details.description3 || details.amount1 || details.amount2 || details.amount3)) {
         var descSection = document.createElement('div');
         descSection.style.cssText = 'margin-bottom:20px;';
         var descLabels = [
@@ -815,11 +846,6 @@
           });
           report.appendChild(amountTable);
         }
-      } else {
-        var noDetails = document.createElement('div');
-        noDetails.style.cssText = 'font-size:13px;color:#888;margin-bottom:20px;font-style:italic;';
-        noDetails.textContent = 'No job description or amounts were entered for this job.';
-        report.appendChild(noDetails);
       }
 
       var photosHeading = document.createElement('div');

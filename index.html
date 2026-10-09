@@ -13,7 +13,7 @@
       text-align: center;
     }
     h2 { color: #222; margin-bottom: 16px; }
-    #jobNumber {
+    #jobNumber, #customerName, #customerAccount, #customerAddress {
       width: 100%;
       max-width: 320px;
       box-sizing: border-box;
@@ -95,6 +95,9 @@
   <h2>New Job Photo</h2>
 
   <input type="text" id="jobNumber" placeholder="Job # / Work Order #">
+  <input type="text" id="customerName" placeholder="Customer name" maxlength="100" autocomplete="off">
+  <input type="text" id="customerAccount" placeholder="Customer account #" maxlength="40" autocomplete="off">
+  <input type="text" id="customerAddress" placeholder="Job address" maxlength="200" autocomplete="off">
   <select id="photoStage">
     <option value="">Stage...</option>
     <option value="Before">Before</option>
@@ -140,6 +143,7 @@
     var selectedBlob = null;
     var deviceId = null;
     var driverId = null;
+    var lastDetailsJob = null; // Job # the customer boxes currently belong to
     var deviceGroupNames = null; // null = not looked up yet, [] = none found
 
     // Auto "Pic N" numbering — tracks the last Job # a photo was uploaded
@@ -159,6 +163,9 @@
 
     function main() {
       var jobNumberEl = document.getElementById('jobNumber');
+      var customerNameEl = document.getElementById('customerName');
+      var customerAccountEl = document.getElementById('customerAccount');
+      var customerAddressEl = document.getElementById('customerAddress');
       var photoStageEl = document.getElementById('photoStage');
       var photoSubjectEl = document.getElementById('photoSubject');
       var groupNoteEl = document.getElementById('groupNote');
@@ -213,6 +220,27 @@
         picCounterNoteEl.textContent = 'This will be tagged: Pic ' + nextPic;
       }
       jobNumberEl.addEventListener('input', updatePicCounterNote);
+
+      // Customer details are typed once per job and stay filled in for the
+      // next photos. If the crew moves on to a DIFFERENT Job #, clear them so
+      // the old customer's details never get attached to the new job.
+      jobNumberEl.addEventListener('change', function () {
+        var nowJob = jobNumberEl.value.trim();
+        if (lastDetailsJob !== null && nowJob !== lastDetailsJob) {
+          customerNameEl.value = '';
+          customerAccountEl.value = '';
+          customerAddressEl.value = '';
+          lastDetailsJob = null;
+        }
+      });
+
+      window.getJobDetails = function () {
+        return {
+          customer: customerNameEl.value.trim().slice(0, 100),
+          account: customerAccountEl.value.trim().slice(0, 40),
+          address: customerAddressEl.value.trim().slice(0, 200)
+        };
+      };
 
       // Live capture — uses Drive's native camera modal. Confirmed working
       // correctly (full frame, no cropping) for actually taking a new photo.
@@ -293,6 +321,7 @@
           // the next photo. On failure, do NOT advance, so a retry gets
           // the same Pic number rather than skipping one.
           lastUploadedJobNumber = job;
+          lastDetailsJob = job;
           picCounter = picNumber;
 
           isUploading = false;
@@ -429,6 +458,10 @@
             groups: deviceGroupNames || []
           }
         };
+        var d = window.getJobDetails ? window.getJobDetails() : {};
+        if (d.customer) entity.metaData.customer = d.customer;
+        if (d.account) entity.metaData.account = d.account;
+        if (d.address) entity.metaData.address = d.address;
         if (deviceId) entity.device = { id: deviceId };
         if (driverId) entity.driver = { id: driverId };
 
