@@ -792,6 +792,31 @@
         report.appendChild(infoSection);
       }
 
+      // Notes typed on the phone. If the crew changed the note during the job,
+      // every different note is listed, oldest first.
+      var noteList = [];
+      jobRecords.slice().sort(function (a, b) {
+        return new Date(a.fromDate || 0) - new Date(b.fromDate || 0);
+      }).forEach(function (rec) {
+        var n = metaOf(rec).notes;
+        if (n && noteList.indexOf(n) === -1) noteList.push(n);
+      });
+      if (noteList.length) {
+        var notesSection = document.createElement('div');
+        notesSection.style.cssText = 'margin-bottom:20px;padding:12px 14px;border:1px solid #ddd;border-radius:6px;';
+        var notesHeading = document.createElement('div');
+        notesHeading.style.cssText = 'font-weight:600;font-size:14px;margin-bottom:6px;';
+        notesHeading.textContent = 'Notes';
+        notesSection.appendChild(notesHeading);
+        noteList.forEach(function (n) {
+          var noteDiv = document.createElement('div');
+          noteDiv.style.cssText = 'font-size:14px;white-space:pre-wrap;margin-bottom:6px;';
+          noteDiv.textContent = n;
+          notesSection.appendChild(noteDiv);
+        });
+        report.appendChild(notesSection);
+      }
+
       if (details && (details.description1 || details.description2 || details.description3 || details.amount1 || details.amount2 || details.amount3)) {
         var descSection = document.createElement('div');
         descSection.style.cssText = 'margin-bottom:20px;';
