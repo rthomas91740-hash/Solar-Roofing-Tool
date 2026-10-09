@@ -5,126 +5,233 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Roofing and Solar Photos</title>
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, Arial, sans-serif;
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
       margin: 0;
-      padding: 20px;
-      background: #f4f4f4;
-      text-align: center;
+      padding: 20px 16px 48px 16px;
+      background: #f1f3f4;
+      color: #202124;
+      -webkit-text-size-adjust: 100%;
     }
-    h2 { color: #222; margin-bottom: 16px; }
+    #app { max-width: 440px; margin: 0 auto; }
+    .brand {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #e8710a;
+      margin: 4px 4px 2px 4px;
+    }
+    h2 { font-size: 26px; margin: 0 4px 16px 4px; color: #202124; }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #5f6368;
+      margin: 0 0 16px 0;
+    }
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block;
+      font-size: 14px;
+      color: #5f6368;
+      margin: 0 2px 8px 2px;
+    }
     #jobNumber, #customerName, #customerAccount, #customerAddress, #jobNotes {
       width: 100%;
-      max-width: 320px;
-      box-sizing: border-box;
-      padding: 14px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-bottom: 14px;
-    }
-    #photoStage, #photoSubject {
-      width: 100%;
-      max-width: 320px;
-      box-sizing: border-box;
-      padding: 14px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-bottom: 14px;
-    }
-    #jobNotes {
-      font-family: inherit;
-      resize: vertical;
-      min-height: 84px;
-      margin-bottom: 4px;
-    }
-    #notesCount {
-      max-width: 320px;
-      margin: 0 auto 14px auto;
-      font-size: 12px;
-      color: #888;
-      text-align: right;
-    }
-    #groupNote {
-      max-width: 320px;
-      margin: 0 auto 8px auto;
-      font-size: 13px;
-      color: #666;
-      text-align: left;
-    }
-    #picCounterNote {
-      max-width: 320px;
-      margin: 0 auto 14px auto;
-      font-size: 13px;
-      color: #666;
-      text-align: left;
-    }
-    #cameraBtn, #chooseExistingBtn {
-      color: white;
-      border: none;
-      padding: 16px 24px;
+      min-height: 56px;
+      padding: 14px 16px;
       font-size: 18px;
-      border-radius: 8px;
-      width: 100%;
-      max-width: 320px;
-      margin-bottom: 12px;
+      font-family: inherit;
+      color: #202124;
+      background: #fff;
+      border: 2px solid #dadce0;
+      border-radius: 12px;
+      -webkit-appearance: none;
+      appearance: none;
     }
-    #cameraBtn { background: #1a73e8; }
-    #chooseExistingBtn { background: #5f6368; }
-    #cameraBtn:disabled, #chooseExistingBtn:disabled {
-      background: #aac3ec;
+    #jobNumber:focus, #customerName:focus, #customerAccount:focus, #customerAddress:focus, #jobNotes:focus {
+      outline: none;
+      border-color: #e8710a;
     }
-    #preview {
-      margin-top: 20px;
+    #jobNotes { min-height: 120px; resize: vertical; line-height: 1.4; }
+    #notesCount { margin-top: 8px; font-size: 13px; color: #80868b; text-align: right; }
+    #picCounterNote { margin-top: 10px; font-size: 14px; color: #5f6368; min-height: 18px; }
+
+    /* Stage: three big buttons side by side */
+    .stageRow { display: flex; gap: 12px; }
+    .stageBtn {
+      flex: 1;
+      min-height: 64px;
+      font-size: 18px;
+      font-weight: 600;
+      font-family: inherit;
+      color: #202124;
+      background: #fff;
+      border: 2px solid #dadce0;
+      border-radius: 14px;
+    }
+    /* Subject: two-column grid of big tiles */
+    .subjectGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .subjectBtn {
+      min-height: 64px;
+      padding: 8px 10px;
+      font-size: 17px;
+      font-weight: 600;
+      font-family: inherit;
+      line-height: 1.2;
+      color: #202124;
+      background: #fff;
+      border: 2px solid #dadce0;
+      border-radius: 14px;
+    }
+    .stageBtn.selected, .subjectBtn.selected {
+      background: #e8710a;
+      border-color: #e8710a;
+      color: #fff;
+    }
+    .pickLabel { font-size: 14px; color: #5f6368; margin: 0 2px 10px 2px; }
+    .pickLabel.second { margin-top: 24px; }
+
+    /* real dropdowns stay in the page (the code reads them) but are not shown */
+    #photoStage, #photoSubject { display: none; }
+
+    #groupNote {
+      display: inline-block;
       max-width: 100%;
-      border-radius: 8px;
-      display: none;
+      font-size: 13px;
+      color: #5f6368;
+      background: #e8eaed;
+      border-radius: 999px;
+      padding: 6px 14px;
+      margin: 0 4px 18px 4px;
     }
-    #status {
-      margin-top: 16px;
-      font-size: 15px;
-      color: #444;
+
+    #cameraBtn, #chooseExistingBtn, #uploadBtn {
+      display: block;
+      width: 100%;
+      min-height: 64px;
+      font-size: 19px;
+      font-weight: 700;
+      font-family: inherit;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+    }
+    #cameraBtn { background: #e8710a; margin-bottom: 16px; }
+    #chooseExistingBtn { background: #5f6368; }
+    #cameraBtn:disabled, #chooseExistingBtn:disabled { opacity: 0.45; }
+    #preview {
+      display: none;
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 14px;
     }
     #uploadBtn {
-      margin-top: 14px;
-      background: #34a853;
-      color: white;
-      border: none;
-      padding: 14px 22px;
-      font-size: 16px;
-      border-radius: 8px;
       display: none;
-      width: 100%;
-      max-width: 320px;
+      margin-top: 20px;
+      background: #1e8e3e;
     }
-    #uploadBtn:disabled {
-      background: #a8d5b5;
+    #uploadBtn:disabled { opacity: 0.45; }
+    #status {
+      position: sticky;
+      top: 8px;
+      z-index: 10;
+      margin: 0 0 16px 0;
+      padding: 14px 18px;
+      font-size: 17px;
+      line-height: 1.4;
+      color: #202124;
+      background: #fff;
+      border-left: 6px solid #e8710a;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     }
+    #status:empty { display: none; }
   </style>
 </head>
 <body>
+<div id="app">
 
+  <div id="status"></div>
+  <div class="brand">Fleet Wolf Roofing &amp; Solar</div>
   <h2>New Job Photo</h2>
+  <div id="groupNote"></div>
 
-  <input type="text" id="jobNumber" placeholder="Job # / Work Order #">
-  <input type="text" id="customerName" placeholder="Customer name" maxlength="100" autocomplete="off">
-  <input type="text" id="customerAccount" placeholder="Customer account #" maxlength="40" autocomplete="off">
-  <input type="text" id="customerAddress" placeholder="Job address" maxlength="200" autocomplete="off">
-  <textarea id="jobNotes" placeholder="Notes (optional, up to 500 characters)" maxlength="500"></textarea>
-  <div id="notesCount">0 / 500</div>
-  <select id="photoStage">
+  <div class="card">
+    <h3>1 &middot; The job</h3>
+    <div class="field">
+      <label for="jobNumber">Job # / Work Order #</label>
+      <input type="text" id="jobNumber" autocomplete="off">
+      <div id="picCounterNote"></div>
+    </div>
+    <div class="field">
+      <label for="customerName">Customer name</label>
+      <input type="text" id="customerName" maxlength="100" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="customerAccount">Customer account #</label>
+      <input type="text" id="customerAccount" maxlength="40" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="customerAddress">Job address</label>
+      <input type="text" id="customerAddress" maxlength="200" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>2 &middot; Notes</h3>
+    <div class="field">
+      <label for="jobNotes">Optional &mdash; tap the microphone on your keyboard to dictate</label>
+      <textarea id="jobNotes" maxlength="500"></textarea>
+      <div id="notesCount">0 / 500</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>3 &middot; This photo</h3>
+    <div class="pickLabel">Stage</div>
+    <div class="stageRow" id="stageGroup">
+      <button type="button" class="stageBtn" data-value="Before">Before</button>
+      <button type="button" class="stageBtn" data-value="During">During</button>
+      <button type="button" class="stageBtn" data-value="After">After</button>
+    </div>
+    <div class="pickLabel second">What is it a photo of?</div>
+    <div class="subjectGrid" id="subjectGroup">
+        <button type="button" class="subjectBtn" data-value="NorthSlope">Roof · North</button>
+        <button type="button" class="subjectBtn" data-value="SouthSlope">Roof · South</button>
+        <button type="button" class="subjectBtn" data-value="EastSlope">Roof · East</button>
+        <button type="button" class="subjectBtn" data-value="WestSlope">Roof · West</button>
+        <button type="button" class="subjectBtn" data-value="SolarPanels">Solar Panels</button>
+        <button type="button" class="subjectBtn" data-value="Damage">Damage</button>
+        <button type="button" class="subjectBtn" data-value="Meter">Meter</button>
+        <button type="button" class="subjectBtn" data-value="BreakerBox">Breaker / Circuit Box</button>
+        <button type="button" class="subjectBtn" data-value="Inverter">Inverter</button>
+        <button type="button" class="subjectBtn" data-value="Permit">Permit</button>
+        <button type="button" class="subjectBtn" data-value="Other">Other</button>
+    </div>
+    <select id="photoStage">
     <option value="">Stage...</option>
     <option value="Before">Before</option>
     <option value="During">During</option>
     <option value="After">After</option>
-  </select>
-  <select id="photoSubject">
+    </select>
+    <select id="photoSubject">
     <option value="">What is the photo of?</option>
-    <option value="NorthSlope">Roof - North Slope</option>
-    <option value="SouthSlope">Roof - South Slope</option>
-    <option value="EastSlope">Roof - East Slope</option>
-    <option value="WestSlope">Roof - West Slope</option>
+    <option value="NorthSlope">Roof · North</option>
+    <option value="SouthSlope">Roof · South</option>
+    <option value="EastSlope">Roof · East</option>
+    <option value="WestSlope">Roof · West</option>
     <option value="SolarPanels">Solar Panels</option>
     <option value="Damage">Damage</option>
     <option value="Meter">Meter</option>
@@ -132,24 +239,22 @@
     <option value="Inverter">Inverter</option>
     <option value="Permit">Permit</option>
     <option value="Other">Other</option>
-  </select>
-  <div id="groupNote"></div>
-  <div id="picCounterNote"></div>
+    </select>
+  </div>
 
-  <!-- Used for BOTH buttons below — no "capture" attribute on the fallback
-       input for existing-photo selection, so it opens the phone's regular
-       photo library picker rather than forcing the camera. -->
-  <input type="file" accept="image/*" capture="environment" id="fileInputCamera" style="display:none">
-  <input type="file" accept="image/*" id="fileInputLibrary" style="display:none">
+  <div class="card">
+    <h3>4 &middot; Take the photo</h3>
+    <input type="file" accept="image/*" capture="environment" id="fileInputCamera" style="display:none">
+    <input type="file" accept="image/*" id="fileInputLibrary" style="display:none">
+    <button id="cameraBtn">&#128247; Take Photo</button>
+    <button id="chooseExistingBtn">&#128444;&#65039; Choose Existing Photo</button>
+    <img id="preview" alt="preview">
+    <button id="uploadBtn">Upload to Geotab</button>
+  </div>
 
-  <button id="cameraBtn">📷 Take Photo</button>
-  <button id="chooseExistingBtn">🖼️ Choose Existing Photo</button>
+</div>
 
-  <img id="preview" alt="preview">
-  <button id="uploadBtn">Upload to Geotab</button>
-  <div id="status"></div>
-
-  <script>
+<script>
     var SOLUTION_ID = "aWYxNTVkYjMtNzEwNC02NDg";
 
     var geotabApi = null;
@@ -184,6 +289,30 @@
       var jobNotesEl = document.getElementById('jobNotes');
       var notesCountEl = document.getElementById('notesCount');
 
+      // The big Stage / Subject buttons set the (hidden) dropdowns the rest of
+      // the code reads, and show which one is selected.
+      function paintPicks() {
+        Array.prototype.forEach.call(document.querySelectorAll('.stageBtn'), function (b) {
+          b.classList.toggle('selected', b.getAttribute('data-value') === photoStageEl.value);
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('.subjectBtn'), function (b) {
+          b.classList.toggle('selected', b.getAttribute('data-value') === photoSubjectEl.value);
+        });
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('.stageBtn'), function (b) {
+        b.addEventListener('click', function () {
+          photoStageEl.value = b.getAttribute('data-value');
+          paintPicks();
+        });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.subjectBtn'), function (b) {
+        b.addEventListener('click', function () {
+          photoSubjectEl.value = b.getAttribute('data-value');
+          paintPicks();
+        });
+      });
+      window.paintPicks = paintPicks;
+
       function updateNotesCount() {
         notesCountEl.textContent = jobNotesEl.value.length + ' / 500';
       }
@@ -208,12 +337,12 @@
         }
         if (!photoStageEl.value) {
           statusEl.textContent = 'Pick the Stage first (Before / During / After).';
-          photoStageEl.focus();
+          document.getElementById('stageGroup').scrollIntoView({ block: 'center' });
           return false;
         }
         if (!photoSubjectEl.value) {
           statusEl.textContent = 'Pick what the photo is of first.';
-          photoSubjectEl.focus();
+          document.getElementById('subjectGroup').scrollIntoView({ block: 'center' });
           return false;
         }
         return true;
@@ -357,6 +486,8 @@
           selectedBlob = null;
           preview.style.display = 'none';
           photoSubjectEl.value = ''; // Stage stays; Subject must be picked again for the next photo
+          paintPicks();
+          document.getElementById('stageGroup').scrollIntoView({ block: 'center' });
           updatePicCounterNote();
         }, function () {
           isUploading = false;
