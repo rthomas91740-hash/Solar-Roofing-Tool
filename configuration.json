@@ -1,0 +1,24 @@
+{
+    "name": "Fleet Wolf Roofing and Solar",
+    "supportEmail": "randy@fleetwolf.com",
+    "version": "1.0",
+    "items": [
+        {
+            "url": "https://rthomas91740-hash.github.io/Solar-Roofing-Tool/index.html",
+            "path": "DriveAppLink/",
+            "menuName": {
+                "en": "Roof & Solar Photos"
+            },
+            "icon": "https://rthomas91740-hash.github.io/Solar-Roofing-Tool/icon.svg"
+        },
+        {
+            "url": "https://rthomas91740-hash.github.io/Solar-Roofing-Tool/gallery.html",
+            "path": "/",
+            "menuName": {
+                "en": "Roof & Solar Records"
+            },
+            "icon": "https://rthomas91740-hash.github.io/Solar-Roofing-Tool/icon.svg"
+        }
+    ],
+    "files": {}
+}

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roofing &amp; Solar Photos</title>
+  <style>
+    body {
+      font-family: -apple-system, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+      text-align: center;
+    }
+    h2 { color: #222; margin-bottom: 16px; }
+    #jobNumber {
+      width: 100%;
+      max-width: 320px;
+      box-sizing: border-box;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    #photoType {
+      width: 100%;
+      max-width: 320px;
+      box-sizing: border-box;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    #picCounterNote {
+      max-width: 320px;
+      margin: 0 auto 14px auto;
+      font-size: 13px;
+      color: #666;
+      text-align: left;
+    }
+    #cameraBtn, #chooseExistingBtn {
+      color: white;
+      border: none;
+      padding: 16px 24px;
+      font-size: 18px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 12px;
+    }
+    #cameraBtn { background: #1a73e8; }
+    #chooseExistingBtn { background: #5f6368; }
+    #cameraBtn:disabled, #chooseExistingBtn:disabled {
+      background: #aac3ec;
+    }
+    #preview {
+      margin-top: 20px;
+      max-width: 100%;
+      border-radius: 8px;
+      display: none;
+    }
+    #status {
+      margin-top: 16px;
+      font-size: 15px;
+      color: #444;
+    }
+    #uploadBtn {
+      margin-top: 14px;
+      background: #34a853;
+      color: white;
+      border: none;
+      padding: 14px 22px;
+      font-size: 16px;
+      border-radius: 8px;
+      display: none;
+      width: 100%;
+      max-width: 320px;
+    }
+    #uploadBtn:disabled {
+      background: #a8d5b5;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>New Job Photo</h2>
+
+  <input type="text" id="jobNumber" placeholder="Job # / Work Order #">
+  <select id="photoType">
+    <option value="BOL">BOL</option>
+    <option value="Receipt">Receipt</option>
+    <option value="Other">Other</option>
+  </select>
+  <div id="picCounterNote"></div>
+
+  <!-- Used for BOTH buttons below — no "capture" attribute on the fallback
+       input for existing-photo selection, so it opens the phone's regular
+       photo library picker rather than forcing the camera. -->
+  <input type="file" accept="image/*" capture="environment" id="fileInputCamera" style="display:none">
+  <input type="file" accept="image/*" id="fileInputLibrary" style="display:none">
+
+  <button id="cameraBtn">📷 Take Photo</button>
+  <button id="chooseExistingBtn">🖼️ Choose Existing Photo</button>
+
+  <img id="preview" alt="preview">
+  <button id="uploadBtn">Upload to Geotab</button>
+  <div id="status"></div>
+
+  <script>
+    var SOLUTION_ID = "aWYxNTVkYjMtNzEwNC02NDg";
+
+    var geotabApi = null;
+    var geotabState = null;
+    var sessionInfo = null;
+    var selectedBlob = null;
+    var deviceId = null;
+    var driverId = null;
+
+    // Auto "Pic N" numbering — tracks the last Job # a photo was uploaded
+    // under, in this session only. As long as the driver keeps the same
+    // Job # typed in, each successive upload automatically becomes
+    // Pic 2, Pic 3, etc. The moment the Job # field changes, this resets
+    // to Pic 1 for the new job. This also means drivers no longer need to
+    // manually vary anything to avoid duplicate-looking uploads.
+    var lastUploadedJobNumber = null;
+    var picCounter = 0;
+
+    // Hard lock against double-submits (e.g. a driver double-tapping or
+    // retrying because nothing seemed to happen). isUploading is checked
+    // FIRST, before even looking at the disabled attribute, as a backup
+    // in case a second tap sneaks in during the same event-loop tick.
+    var isUploading = false;
+
+    function main() {
+      var jobNumberEl = document.getElementById('jobNumber');
+      var photoTypeEl = document.getElementById('photoType');
+      var picCounterNoteEl = document.getElementById('picCounterNote');
+      var fileInputCamera = document.getElementById('fileInputCamera');
+      var fileInputLibrary = document.getElementById('fileInputLibrary');
+      var cameraBtn = document.getElementById('cameraBtn');
+      var chooseExistingBtn = document.getElementById('chooseExistingBtn');
+      var preview = document.getElementById('preview');
+      var uploadBtn = document.getElementById('uploadBtn');
+      var statusEl = document.getElementById('status');
+
+      function requireJobNumber() {
+        if (!jobNumberEl.value.trim()) {
+          statusEl.textContent = 'Enter a Job # first.';
+          jobNumberEl.focus();
+          return false;
+        }
+        return true;
+      }
+
+      function updatePicCounterNote() {
+        var job = jobNumberEl.value.trim();
+        if (!job) {
+          picCounterNoteEl.textContent = '';
+          return;
+        }
+        var nextPic = (job === lastUploadedJobNumber) ? (picCounter + 1) : 1;
+        picCounterNoteEl.textContent = 'This will be tagged: Pic ' + nextPic;
+      }
+      jobNumberEl.addEventListener('input', updatePicCounterNote);
+
+      // Live capture — uses Drive's native camera modal. Confirmed working
+      // correctly (full frame, no cropping) for actually taking a new photo.
+      cameraBtn.addEventListener('click', function () {
+        if (!requireJobNumber()) return;
+
+        if (geotabApi && geotabApi.mobile && geotabApi.mobile.exists && geotabApi.mobile.exists()) {
+          statusEl.textContent = 'Opening camera...';
+          geotabApi.mobile.camera.takePicture().then(function (base64Data) {
+            selectedBlob = base64ToBlob(base64Data);
+            showPreview(selectedBlob);
+          }).catch(function (err) {
+            statusEl.textContent = 'Camera error: ' + err;
+          });
+        } else {
+          fileInputCamera.click();
+        }
+      });
+
+      // Choosing an already-taken photo — deliberately bypasses Geotab's
+      // native "Upload" option inside the camera modal. That native path
+      // was found to crop/misplace photos (fitting them into the wrong
+      // canvas aspect ratio) when selecting an existing gallery photo.
+      // Using the phone's own file/photo picker instead avoids that bug
+      // entirely and returns the original, unmodified image.
+      chooseExistingBtn.addEventListener('click', function () {
+        if (!requireJobNumber()) return;
+        fileInputLibrary.click();
+      });
+
+      fileInputCamera.addEventListener('change', function (e) {
+        if (!e.target.files || !e.target.files[0]) return;
+        selectedBlob = e.target.files[0];
+        showPreview(selectedBlob);
+      });
+
+      fileInputLibrary.addEventListener('change', function (e) {
+        if (!e.target.files || !e.target.files[0]) return;
+        selectedBlob = e.target.files[0];
+        showPreview(selectedBlob);
+      });
+
+      function showPreview(blob) {
+        var reader = new FileReader();
+        reader.onload = function (evt) {
+          preview.src = evt.target.result;
+          preview.style.display = 'block';
+          uploadBtn.style.display = 'inline-block';
+          uploadBtn.disabled = false;
+          statusEl.textContent = 'Ready to upload.';
+          updatePicCounterNote();
+        };
+        reader.readAsDataURL(blob);
+      }
+
+      uploadBtn.addEventListener('click', function () {
+        // Guard checked BEFORE anything else — this is what actually
+        // stops a rapid second tap, not just the disabled attribute.
+        if (isUploading) return;
+        if (!selectedBlob) return;
+        if (!requireJobNumber()) return;
+        if (!geotabApi) {
+          statusEl.textContent = 'Not connected to Geotab yet — open this from inside Drive.';
+          return;
+        }
+
+        isUploading = true;
+        uploadBtn.disabled = true;
+        cameraBtn.disabled = true;
+        chooseExistingBtn.disabled = true;
+        statusEl.textContent = 'Uploading, please wait...';
+
+        var job = jobNumberEl.value.trim();
+        var picNumber = (job === lastUploadedJobNumber) ? (picCounter + 1) : 1;
+
+        uploadPhoto(selectedBlob, job, photoTypeEl.value, picNumber, statusEl, function () {
+          // On success only — record the counter advance and reset for
+          // the next photo. On failure, do NOT advance, so a retry gets
+          // the same Pic number rather than skipping one.
+          lastUploadedJobNumber = job;
+          picCounter = picNumber;
+
+          isUploading = false;
+          uploadBtn.disabled = false;
+          cameraBtn.disabled = false;
+          chooseExistingBtn.disabled = false;
+          uploadBtn.style.display = 'none';
+          selectedBlob = null;
+          preview.style.display = 'none';
+          updatePicCounterNote();
+        }, function () {
+          isUploading = false;
+          uploadBtn.disabled = false;
+          cameraBtn.disabled = false;
+          chooseExistingBtn.disabled = false;
+        });
+      });
+    }
+
+    function base64ToBlob(base64Data) {
+      var raw = base64Data.indexOf(',') !== -1 ? base64Data.split(',')[1] : base64Data;
+      var binary = atob(raw);
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new Blob([bytes], { type: 'image/jpeg' });
+    }
+
+    function resolveVehicleAndDriver() {
+      if (geotabApi && geotabApi.mobile && geotabApi.mobile.exists && geotabApi.mobile.exists()) {
+        if (geotabApi.mobile.vehicle && geotabApi.mobile.vehicle.get) {
+          geotabApi.mobile.vehicle.get().then(function (vehicle) {
+            if (vehicle && vehicle.id) deviceId = vehicle.id;
+          }).catch(function () {});
+        }
+        if (geotabApi.mobile.user && geotabApi.mobile.user.get) {
+          geotabApi.mobile.user.get().then(function (user) {
+            if (user && user.id) driverId = user.id;
+          }).catch(function () {});
+        }
+      }
+
+      if (geotabState) {
+        if (!deviceId && geotabState.device && geotabState.device.id) {
+          deviceId = geotabState.device.id;
+        }
+        if (geotabState.iam) {
+          var usernames = Object.keys(geotabState.iam);
+          if (usernames.length && geotabApi) {
+            geotabApi.call('Get', {
+              typeName: 'User',
+              search: { name: usernames[0] }
+            }, function (users) {
+              if (!driverId && users && users[0]) driverId = users[0].id;
+            }, function () {});
+          }
+        }
+      }
+    }
+
+    function fetchSession(onReady) {
+      geotabApi.getSession(function (session) {
+        sessionInfo = {
+          database: session.database,
+          sessionId: session.sessionId,
+          userName: session.userName,
+          server: session.server || session.path || window.location.hostname
+        };
+        if (onReady) onReady();
+      });
+    }
+
+    function uploadPhoto(blob, jobNumber, photoType, picNumber, statusEl, onSuccess, onError) {
+      // Cap the Job # portion — Geotab's MediaFile name field has a hard
+      // 128-character limit, and a very long Job # (someone typing a full
+      // route description instead of a short job number) can leave zero
+      // headroom for the "-ARCHIVED" suffix added later, breaking Archive.
+      // 60 characters leaves comfortable room for everything else.
+      var MAX_JOB_LENGTH = 60;
+      var safeJob = jobNumber.replace(/[^a-z0-9\-_]/gi, '_').slice(0, MAX_JOB_LENGTH);
+      var label = 'Pic_' + picNumber;
+      var fileName = 'job-' + safeJob + '-type-' + photoType + '-label-' + label + '-' + Date.now() + '.jpg';
+
+      var entity = {
+        name: fileName,
+        solutionId: SOLUTION_ID,
+        fromDate: new Date().toISOString(),
+        toDate: new Date().toISOString()
+      };
+      if (deviceId) entity.device = { id: deviceId };
+      if (driverId) entity.driver = { id: driverId };
+
+      geotabApi.call('Add', {
+        typeName: 'MediaFile',
+        entity: entity
+      }, function (mediaFileId) {
+        statusEl.textContent = 'Uploading image...';
+        doMultipartUpload(mediaFileId, fileName, blob, statusEl, onSuccess, onError, true);
+      }, function (err) {
+        statusEl.textContent = 'Error creating record: ' + err;
+        onError();
+      });
+    }
+
+    // allowSessionRetry: if the upload fails specifically because the
+    // cached session has gone stale (e.g. a driver kept Drive open for a
+    // long shift before getting around to uploading a photo, and the
+    // underlying login session expired in the background), fetch a fresh
+    // session and retry exactly once before giving up. Any other kind of
+    // failure is reported immediately, same as before.
+    function doMultipartUpload(mediaFileId, fileName, blob, statusEl, onSuccess, onError, allowSessionRetry) {
+      function send() {
+        var payload = {
+          method: 'UploadMediaFile',
+          params: {
+            mediaFile: { id: mediaFileId, name: fileName },
+            credentials: {
+              database: sessionInfo.database,
+              sessionId: sessionInfo.sessionId,
+              userName: sessionInfo.userName
+            }
+          }
+        };
+
+        var formData = new FormData();
+        formData.append('JSON-RPC', JSON.stringify(payload));
+        formData.append('file', blob, fileName);
+
+        fetch('https://' + sessionInfo.server + '/apiv1/', {
+          method: 'POST',
+          body: formData
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (json) {
+            if (json && json.error) {
+              var msg = json.error.message || '';
+              var isSessionError = /session/i.test(msg);
+              if (isSessionError && allowSessionRetry) {
+                statusEl.textContent = 'Session expired — reconnecting...';
+                sessionInfo = null;
+                fetchSession(function () {
+                  doMultipartUpload(mediaFileId, fileName, blob, statusEl, onSuccess, onError, false);
+                });
+                return;
+              }
+              statusEl.textContent = 'Upload failed: ' + msg;
+              onError();
+              return;
+            }
+            statusEl.textContent = '✅ Photo uploaded! It will appear in MyGeotab shortly.';
+            onSuccess();
+          })
+          .catch(function (err) {
+            statusEl.textContent = 'Upload failed: ' + err;
+            onError();
+          });
+      }
+
+      if (sessionInfo) {
+        send();
+      } else {
+        fetchSession(send);
+      }
+    }
+
+    geotab.addin.fleetWolfRoofSolarCapture = function () {
+      return {
+        initialize: function (api, state, callback) {
+          geotabApi = api;
+          geotabState = state;
+
+          callback();
+          main();
+          fetchSession();
+          resolveVehicleAndDriver();
+        },
+        focus: function (api, state) {},
+        blur: function () {}
+      };
+    };
+  </script>
+</body>
+</html>

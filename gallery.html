@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Roofing &amp; Solar Records</title>
+  <style>
+    body {
+      font-family: -apple-system, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #fafafa;
+      color: #222;
+    }
+    h2 { margin-top: 0; }
+    #toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    #toolbar button, #toolbar input {
+      padding: 10px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    #printBtn {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #refreshBtn {
+      background: #eee;
+      cursor: pointer;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 900px;
+      background: white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 14px 18px;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+    th {
+      background: #f0f0f0;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      color: #555;
+    }
+    tbody tr:nth-child(even) { background: #fafafa; }
+    tbody tr:hover { background: #f0f6ff; }
+    td:first-child, th:first-child { width: 36px; text-align: center; padding-right: 0; }
+    td:last-child, th:last-child { width: 80px; }
+    .view-link {
+      color: #1a73e8;
+      cursor: pointer;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      font-size: 14px;
+      padding: 0;
+    }
+    #status { color: #666; margin-bottom: 16px; }
+
+    #printArea { display: none; }
+    @media print {
+      #toolbar, table { display: none !important; }
+      #printArea { display: block !important; }
+      .printCard {
+        page-break-inside: avoid;
+        margin-bottom: 24px;
+        border-bottom: 1px solid #999;
+        padding-bottom: 16px;
+      }
+      .printCard .stampRow { font-size: 13px; margin-top: 8px; }
+    }
+  </style>
+</head>
+<body style="font-family:-apple-system,Arial,sans-serif;margin:0;padding:20px;background:#fafafa;color:#222;">
+
+  <h2 style="margin-top:0;">Roofing &amp; Solar Records</h2>
+  <div id="toolbar" style="display:flex;gap:12px;align-items:center;margin-bottom:24px;flex-wrap:wrap;">
+    <button id="refreshBtn" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;background:#eee;cursor:pointer;">Refresh</button>
+    <input type="date" id="dateFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
+    <input type="text" id="jobFilter" placeholder="Filter by Job #" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
+    <select id="typeFilter" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;">
+      <option value="">All Types</option>
+      <option value="BOL">BOL</option>
+      <option value="Receipt">Receipt</option>
+      <option value="Other">Other</option>
+    </select>
+    <button id="selectVisibleBtn" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;background:#eee;cursor:pointer;">✅ Select Visible</button>
+    <button id="printBtn" style="padding:10px 16px;font-size:14px;border-radius:6px;border:none;background:#1a73e8;color:white;cursor:pointer;">🖨️ Print Selected</button>
+    <button id="archiveBtn" style="padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #ccc;background:#eee;cursor:pointer;">🗄️ Archive Selected</button>
+    <label style="font-size:14px;display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="showArchivedToggle"> Show archived
+    </label>
+    <label style="font-size:14px;display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="showAllToggle"> Show all time (slower)
+    </label>
+    <span id="status" style="color:#666;"></span>
+  </div>
+
+  <table id="photoTable" style="border-collapse:collapse;width:100%;max-width:900px;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.1);border-radius:8px;">
+    <thead>
+      <tr>
+        <th style="text-align:center;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;width:36px;">
+          <input type="checkbox" id="selectAllCheckbox">
+        </th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Job #</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Type</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Label</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Date</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Vehicle</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;">Driver</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;width:80px;">Photo</th>
+        <th style="text-align:left;padding:14px 18px;background:#f0f0f0;font-weight:600;font-size:12px;text-transform:uppercase;color:#555;width:110px;">Report</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <div id="printArea" style="display:none;"></div>
+
+  <script>
+    var SOLUTION_ID = "aWYxNTVkYjMtNzEwNC02NDg";
+
+    var geotabApi = null;
+    var sessionInfo = null;
+    var deviceNameCache = {};
+    var driverNameCache = {};
+    var currentRecords = [];
+
+    function main() {
+      document.getElementById('refreshBtn').addEventListener('click', loadPhotos);
+      document.getElementById('dateFilter').addEventListener('change', loadPhotos);
+      document.getElementById('jobFilter').addEventListener('input', renderFilteredTable);
+      document.getElementById('typeFilter').addEventListener('change', renderFilteredTable);
+      document.getElementById('selectAllCheckbox').addEventListener('change', function () {
+        setAllVisibleChecked(this.checked);
+      });
+      document.getElementById('selectVisibleBtn').addEventListener('click', function () {
+        setAllVisibleChecked(true);
+        document.getElementById('selectAllCheckbox').checked = true;
+      });
+      document.getElementById('printBtn').addEventListener('click', printSelected);
+      document.getElementById('archiveBtn').addEventListener('click', archiveSelected);
+      document.getElementById('showArchivedToggle').addEventListener('change', function () {
+        var showArchived = this.checked;
+        document.getElementById('archiveBtn').textContent = showArchived ? '↩️ Unarchive Selected' : '🗄️ Archive Selected';
+        renderFilteredTable();
+      });
+      document.getElementById('showAllToggle').addEventListener('change', loadPhotos);
+      loadPhotos();
+    }
+
+    function setAllVisibleChecked(checked) {
+      document.querySelectorAll('#tableBody input[type=checkbox]').forEach(function (cb) {
+        cb.checked = checked;
+      });
+    }
+
+    function setStatus(text) {
+      document.getElementById('status').textContent = text;
+    }
+
+    // Job # and Type were encoded into the filename at upload time, e.g.
+    // "job-4521-type-BOL-1699999999.jpg". Older photos (before Type existed)
+    // used "job-4521-1699999999.jpg" — still parsed correctly, just with no type.
+    function parseFileName(name) {
+      if (!name) return { job: '(none)', type: '(none)', label: '(none)' };
+      var withLabel = name.match(/^job-(.+)-type-(BOL|Receipt|Other)-label-(.+)-\d+(?:-ARCHIVED)?\.[a-z]+$/i);
+      if (withLabel) return { job: withLabel[1], type: withLabel[2], label: withLabel[3] };
+      var withType = name.match(/^job-(.+)-type-(BOL|Receipt|Other)-\d+(?:-ARCHIVED)?\.[a-z]+$/i);
+      if (withType) return { job: withType[1], type: withType[2], label: '(none)' };
+      var withoutType = name.match(/^job-(.+)-\d+(?:-ARCHIVED)?\.[a-z]+$/i);
+      if (withoutType) return { job: withoutType[1], type: '(none)', label: '(none)' };
+      return { job: '(none)', type: '(none)', label: '(none)' };
+    }
+
+    function extractJobNumber(name) {
+      return parseFileName(name).job;
+    }
+
+    function isArchived(name) {
+      return !!(name && /-ARCHIVED\.[a-z]+$/i.test(name));
+    }
+
+    // Same Job # can legitimately get reused across unrelated jobs on
+    // different days (e.g. drivers writing "fuel" as a shorthand instead
+    // of a real job number) — so Job Reports group by Job # + calendar day
+    // together, never by Job # alone, to avoid lumping unrelated photos
+    // from different days into one meaningless report.
+    function dateKey(record) {
+      if (!record.fromDate) return 'unknown-date';
+      return new Date(record.fromDate).toDateString();
+    }
+
+    function loadPhotos() {
+      setStatus('Loading...');
+      document.getElementById('tableBody').innerHTML = '';
+
+      var search = { solutionId: SOLUTION_ID };
+      var dateVal = document.getElementById('dateFilter').value;
+      var showAll = document.getElementById('showAllToggle').checked;
+
+      if (dateVal) {
+        // A specific day was picked — narrow to just that day.
+        search.fromDate = new Date(dateVal + 'T00:00:00').toISOString();
+        search.toDate = new Date(dateVal + 'T23:59:59').toISOString();
+      } else if (!showAll) {
+        // Default: last 7 days only. Loading the full history on every
+        // page open doesn't scale once a client has months of photos —
+        // "Show all time" below is there for anyone who explicitly needs
+        // to search further back.
+        var sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        search.fromDate = sevenDaysAgo.toISOString();
+      }
+
+      geotabApi.call('Get', {
+        typeName: 'MediaFile',
+        search: search
+      }, function (records) {
+        currentRecords = records || [];
+        if (!currentRecords.length) {
+          setStatus('No photos found.');
+          return;
+        }
+        setStatus(currentRecords.length + ' photo(s) found.');
+        resolveNames(currentRecords);
+      }, function (err) {
+        setStatus('Error loading photos: ' + err);
+      });
+    }
+
+    function resolveNames(records) {
+      var deviceIds = [];
+      var driverIds = [];
+      records.forEach(function (r) {
+        if (r.device && r.device.id && r.device.id !== 'NoDeviceId' && !deviceNameCache[r.device.id]) {
+          deviceIds.push(r.device.id);
+        }
+        if (r.driver && r.driver.id && r.driver.id !== 'UnknownDriverId' && !driverNameCache[r.driver.id]) {
+          driverIds.push(r.driver.id);
+        }
+      });
+
+      var calls = [];
+      deviceIds.forEach(function (id) { calls.push(['Get', { typeName: 'Device', search: { id: id } }]); });
+      driverIds.forEach(function (id) { calls.push(['Get', { typeName: 'User', search: { id: id } }]); });
+
+      if (calls.length === 0) {
+        renderFilteredTable();
+        return;
+      }
+
+      geotabApi.multiCall(calls, function (results) {
+        var di = 0;
+        deviceIds.forEach(function (id) {
+          var res = results[di++];
+          if (res && res[0]) deviceNameCache[id] = res[0].name;
+        });
+        driverIds.forEach(function (id) {
+          var res = results[di++];
+          if (res && res[0]) {
+            var u = res[0];
+            driverNameCache[id] = (u.firstName || '') + ' ' + (u.lastName || '');
+          }
+        });
+        renderFilteredTable();
+      }, function () {
+        renderFilteredTable();
+      });
+    }
+
+    function renderFilteredTable() {
+      var filterText = document.getElementById('jobFilter').value.trim().toLowerCase();
+      var typeFilter = document.getElementById('typeFilter').value;
+      var showArchived = document.getElementById('showArchivedToggle').checked;
+      var body = document.getElementById('tableBody');
+      body.innerHTML = '';
+      document.getElementById('selectAllCheckbox').checked = false;
+
+      currentRecords.forEach(function (r) {
+        var archived = isArchived(r.name);
+        if (archived !== showArchived) return;
+
+        var parsed = parseFileName(r.name);
+        var jobNumber = parsed.job;
+        var photoType = parsed.type;
+        var photoLabel = parsed.label;
+
+        if (filterText && jobNumber.toLowerCase().indexOf(filterText) === -1) return;
+        if (typeFilter && photoType !== typeFilter) return;
+
+        var deviceName = (r.device && r.device.id && deviceNameCache[r.device.id]) || 'Unassigned';
+        var driverName = (r.driver && r.driver.id && driverNameCache[r.driver.id]) || 'Unassigned';
+        var dateStr = r.fromDate ? new Date(r.fromDate).toLocaleString() : 'Unknown date';
+
+        var tr = document.createElement('tr');
+        tr.style.cssText = 'border-bottom:1px solid #eee;';
+        if (body.children.length % 2 === 1) {
+          tr.style.background = '#fafafa';
+        }
+
+        var checkTd = document.createElement('td');
+        checkTd.style.cssText = 'padding:14px 18px;text-align:center;width:36px;';
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.dataset.id = r.id;
+        checkTd.appendChild(checkbox);
+        tr.appendChild(checkTd);
+
+        [jobNumber, photoType, photoLabel, dateStr, deviceName, driverName].forEach(function (val) {
+          var td = document.createElement('td');
+          td.style.cssText = 'padding:14px 18px;font-size:14px;';
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+
+        var viewTd = document.createElement('td');
+        viewTd.style.cssText = 'padding:14px 18px;width:80px;';
+        var viewBtn = document.createElement('button');
+        viewBtn.style.cssText = 'color:#1a73e8;cursor:pointer;text-decoration:underline;background:none;border:none;font-size:14px;padding:0;';
+        viewBtn.textContent = 'View';
+        viewBtn.addEventListener('click', function () {
+          viewPhoto(r.id);
+        });
+        viewTd.appendChild(viewBtn);
+        tr.appendChild(viewTd);
+
+        var reportTd = document.createElement('td');
+        reportTd.style.cssText = 'padding:14px 18px;width:110px;';
+        var reportBtn = document.createElement('button');
+        reportBtn.style.cssText = 'color:#1a73e8;cursor:pointer;text-decoration:underline;background:none;border:none;font-size:14px;padding:0;';
+        reportBtn.textContent = 'Job Report';
+        reportBtn.addEventListener('click', function () {
+          generateJobReport(jobNumber, dateKey(r));
+        });
+        reportTd.appendChild(reportBtn);
+        tr.appendChild(reportTd);
+
+        body.appendChild(tr);
+      });
+    }
+
+    // Opens a blank tab synchronously (so it isn't blocked as a popup),
+    // then fills it in once the image has actually downloaded.
+    function viewPhoto(mediaFileId) {
+      var newTab = window.open('', '_blank');
+      if (newTab) newTab.document.write('Loading photo...');
+      downloadImageBlob(mediaFileId, function (blob) {
+        var url = URL.createObjectURL(blob);
+        if (newTab) newTab.location.href = url;
+      }, function (err) {
+        if (newTab) newTab.document.write('Failed to load photo: ' + err);
+      });
+    }
+
+    function downloadImageBlob(mediaFileId, onSuccess, onError) {
+      function send() {
+        var payload = {
+          method: 'DownloadMediaFile',
+          params: {
+            mediaFile: { id: mediaFileId },
+            credentials: {
+              database: sessionInfo.database,
+              sessionId: sessionInfo.sessionId,
+              userName: sessionInfo.userName
+            }
+          }
+        };
+
+        fetch('https://' + sessionInfo.server + '/apiv1/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (res) {
+            var contentType = res.headers.get('content-type') || '';
+            if (contentType.indexOf('json') !== -1) {
+              return res.text().then(function (text) { throw new Error(text); });
+            }
+            return res.blob();
+          })
+          .then(onSuccess)
+          .catch(function (err) { onError(err.message || String(err)); });
+      }
+
+      if (sessionInfo) {
+        send();
+      } else {
+        fetchSession(send);
+      }
+    }
+
+    // Geotab's MediaFile name field has a hard 128-character limit. If a
+    // very long Job # was typed (or old records that predate the Job #
+    // length cap) push a name over that limit — especially once
+    // "-ARCHIVED" gets appended — this trims from the middle rather than
+    // failing outright, always preserving the file extension.
+    function enforceNameLength(name, maxLen) {
+      if (name.length <= maxLen) return name;
+      var extMatch = name.match(/\.[a-z0-9]+$/i);
+      var ext = extMatch ? extMatch[0] : '';
+      var withoutExt = ext ? name.slice(0, name.length - ext.length) : name;
+      var keepLength = maxLen - ext.length;
+      return withoutExt.slice(0, keepLength) + ext;
+    }
+
+    function archiveSelected() {
+      var checked = Array.prototype.slice.call(
+        document.querySelectorAll('#tableBody input[type=checkbox]:checked')
+      );
+      if (!checked.length) {
+        alert('Check at least one row first.');
+        return;
+      }
+
+      var showArchived = document.getElementById('showArchivedToggle').checked;
+      var actionLabel = showArchived ? 'Unarchiving' : 'Archiving';
+      setStatus(actionLabel + ' ' + checked.length + ' photo(s)...');
+
+      var calls = checked.map(function (cb) {
+        var record = currentRecords.filter(function (r) { return r.id === cb.dataset.id; })[0];
+        if (!record) return null;
+
+        var newName;
+        if (showArchived) {
+          newName = record.name.replace(/-ARCHIVED(\.[a-z]+)$/i, '$1');
+        } else {
+          newName = record.name.replace(/(\.[a-z]+)$/i, '-ARCHIVED$1');
+        }
+        newName = enforceNameLength(newName, 128);
+
+        var updatedEntity = Object.assign({}, record, { name: newName });
+        return ['Set', { typeName: 'MediaFile', entity: updatedEntity }];
+      }).filter(Boolean);
+
+      geotabApi.multiCall(calls, function () {
+        loadPhotos();
+      }, function (err) {
+        setStatus('Error updating photos: ' + err);
+      });
+    }
+
+    function printSelected() {
+      var checked = Array.prototype.slice.call(
+        document.querySelectorAll('#tableBody input[type=checkbox]:checked')
+      );
+      if (!checked.length) {
+        alert('Check at least one row to print.');
+        return;
+      }
+
+      var printArea = document.getElementById('printArea');
+      var cards = {};
+      var index = 0;
+
+      function updateProgress() {
+        printArea.innerHTML = '<p>Loading photo ' + (index + 1) + ' of ' + checked.length + ' for print...</p>';
+      }
+
+      function processNext() {
+        if (index >= checked.length) {
+          finishPrint(checked, cards);
+          return;
+        }
+
+        updateProgress();
+
+        var cb = checked[index];
+        var id = cb.dataset.id;
+        var record = currentRecords.filter(function (r) { return r.id === id; })[0];
+        if (!record) { index++; processNext(); return; }
+
+        var parsed = parseFileName(record.name);
+        var jobNumber = parsed.job;
+        var photoType = parsed.type;
+        var photoLabel = parsed.label;
+        var deviceName = (record.device && record.device.id && deviceNameCache[record.device.id]) || 'Unassigned';
+        var driverName = (record.driver && record.driver.id && driverNameCache[record.driver.id]) || 'Unassigned';
+        var dateStr = record.fromDate ? new Date(record.fromDate).toLocaleString() : 'Unknown date';
+
+        function buildCardAndWaitForLoad(blob, onReady) {
+          var card = document.createElement('div');
+          card.style.cssText = 'page-break-after:always;page-break-inside:avoid;text-align:center;padding-top:20px;';
+
+          var img = document.createElement('img');
+          img.style.cssText = 'max-width:90%;max-height:80vh;display:inline-block;';
+
+          var settled = false;
+          var safetyTimer;
+          function settle() {
+            if (settled) return;
+            settled = true;
+            clearTimeout(safetyTimer);
+            onReady(card);
+          }
+
+          img.onload = settle;
+          img.onerror = settle;
+          safetyTimer = setTimeout(settle, 4000);
+
+          img.src = URL.createObjectURL(blob);
+
+          var stampRow = document.createElement('div');
+          stampRow.style.cssText = 'font-size:14px;margin-top:12px;';
+          stampRow.textContent = 'Job #: ' + jobNumber + '  |  Label: ' + photoLabel + '  |  Type: ' + photoType + '  |  Date: ' + dateStr + '  |  Vehicle: ' + deviceName + '  |  Driver: ' + driverName;
+
+          card.appendChild(img);
+          card.appendChild(stampRow);
+        }
+
+        function attempt(retriesLeft) {
+          downloadImageBlob(id, function (blob) {
+            buildCardAndWaitForLoad(blob, function (card) {
+              cards[id] = card;
+              index++;
+              processNext();
+            });
+          }, function (err) {
+            if (retriesLeft > 0) {
+              attempt(retriesLeft - 1);
+            } else {
+              var card = document.createElement('div');
+              card.style.cssText = 'page-break-after:always;';
+              card.textContent = 'Job #: ' + jobNumber + ' — photo failed to load after retrying (' + err + ')';
+              cards[id] = card;
+              index++;
+              processNext();
+            }
+          });
+        }
+
+        attempt(1);
+      }
+
+      processNext();
+    }
+
+    function finishPrint(checked, cards) {
+      var printArea = document.getElementById('printArea');
+      printArea.innerHTML = '';
+      checked.forEach(function (cb, i) {
+        var card = cards[cb.dataset.id];
+        if (!card) return;
+        if (i === checked.length - 1) {
+          card.style.pageBreakAfter = 'auto';
+        }
+        printArea.appendChild(card);
+      });
+
+      var toolbar = document.getElementById('toolbar');
+      var table = document.getElementById('photoTable');
+      var prevToolbarDisplay = toolbar.style.display;
+      var prevTableDisplay = table.style.display;
+
+      toolbar.style.display = 'none';
+      table.style.display = 'none';
+      printArea.style.display = 'block';
+
+      window.print();
+
+      toolbar.style.display = prevToolbarDisplay;
+      table.style.display = prevTableDisplay;
+      printArea.style.display = 'none';
+    }
+
+    // Pulls together everything for one Job # on one specific day: any
+    // job-level description/amounts (if present in metaData — not yet
+    // collected by the current capture add-in, so this gracefully shows
+    // "no details entered" until that's added) plus every photo tied to
+    // that job on that day, laid out as one printable report.
+    function generateJobReport(jobNumber, targetDateKey) {
+      var jobRecords = currentRecords.filter(function (r) {
+        return parseFileName(r.name).job === jobNumber && dateKey(r) === targetDateKey;
+      });
+      if (!jobRecords.length) {
+        alert('No photos found for this job on this date.');
+        return;
+      }
+
+      var details = null;
+      for (var i = 0; i < jobRecords.length; i++) {
+        if (jobRecords[i].metaData) {
+          details = jobRecords[i].metaData;
+          break;
+        }
+      }
+
+      var printArea = document.getElementById('printArea');
+      var photoCards = {};
+      var index = 0;
+
+      function next() {
+        if (index >= jobRecords.length) {
+          finishJobReport(jobNumber, details, jobRecords, photoCards);
+          return;
+        }
+        printArea.innerHTML = '<p>Loading photo ' + (index + 1) + ' of ' + jobRecords.length + ' for report...</p>';
+        var record = jobRecords[index];
+        attempt(record, 1);
+      }
+
+      function attempt(record, retriesLeft) {
+        downloadImageBlob(record.id, function (blob) {
+          buildReportPhotoCard(record, blob, function (card) {
+            photoCards[record.id] = card;
+            index++;
+            next();
+          });
+        }, function (err) {
+          if (retriesLeft > 0) {
+            attempt(record, retriesLeft - 1);
+          } else {
+            var errDiv = document.createElement('div');
+            errDiv.textContent = parseFileName(record.name).label + ' — photo failed to load';
+            photoCards[record.id] = errDiv;
+            index++;
+            next();
+          }
+        });
+      }
+
+      next();
+    }
+
+    function buildReportPhotoCard(record, blob, onReady) {
+      var parsed = parseFileName(record.name);
+      var wrapper = document.createElement('div');
+      wrapper.style.cssText = 'display:inline-block;width:31%;margin:0 1% 16px 1%;vertical-align:top;text-align:center;';
+
+      var img = document.createElement('img');
+      img.style.cssText = 'width:100%;max-height:220px;object-fit:cover;border:1px solid #ccc;';
+
+      var caption = document.createElement('div');
+      caption.style.cssText = 'font-size:12px;color:#444;margin-top:4px;';
+      caption.textContent = parsed.label !== '(none)' ? parsed.label : '';
+
+      var settled = false;
+      var timer;
+      function settle() {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        wrapper.appendChild(img);
+        wrapper.appendChild(caption);
+        onReady(wrapper);
+      }
+      img.onload = settle;
+      img.onerror = settle;
+      timer = setTimeout(settle, 4000);
+      img.src = URL.createObjectURL(blob);
+    }
+
+    function finishJobReport(jobNumber, details, jobRecords, photoCards) {
+      var printArea = document.getElementById('printArea');
+      printArea.innerHTML = '';
+
+      var report = document.createElement('div');
+      report.style.cssText = 'font-family:-apple-system,Arial,sans-serif;max-width:800px;margin:0 auto;';
+
+      var title = document.createElement('h2');
+      title.style.cssText = 'margin-bottom:4px;';
+      title.textContent = 'Job Report — #' + jobNumber;
+      report.appendChild(title);
+
+      var firstRecord = jobRecords[0];
+      var deviceName = (firstRecord.device && firstRecord.device.id && deviceNameCache[firstRecord.device.id]) || 'Unassigned';
+      var driverName = (firstRecord.driver && firstRecord.driver.id && driverNameCache[firstRecord.driver.id]) || 'Unassigned';
+      var dateStr = firstRecord.fromDate ? new Date(firstRecord.fromDate).toLocaleDateString() : 'Unknown date';
+
+      var meta = document.createElement('div');
+      meta.style.cssText = 'font-size:13px;color:#555;margin-bottom:20px;';
+      meta.textContent = 'Date: ' + dateStr + '  |  Vehicle: ' + deviceName + '  |  Driver: ' + driverName;
+      report.appendChild(meta);
+
+      if (details) {
+        var descSection = document.createElement('div');
+        descSection.style.cssText = 'margin-bottom:20px;';
+        var descLabels = [
+          ['Job Description', details.description1],
+          ['Scope of Work', details.description2],
+          ['Notes', details.description3]
+        ];
+        descLabels.forEach(function (pair) {
+          if (!pair[1]) return;
+          var row = document.createElement('div');
+          row.style.cssText = 'margin-bottom:6px;font-size:14px;';
+          row.innerHTML = '<strong>' + pair[0] + ':</strong> ' + escapeHtml(pair[1]);
+          descSection.appendChild(row);
+        });
+        report.appendChild(descSection);
+
+        var amountLabels = [
+          ['Estimate', details.amount1],
+          ['Billable Hours', details.amount2],
+          ['Amount Collected', details.amount3]
+        ];
+        var hasAmounts = amountLabels.some(function (pair) { return pair[1]; });
+        if (hasAmounts) {
+          var amountTable = document.createElement('table');
+          amountTable.style.cssText = 'border-collapse:collapse;margin-bottom:24px;';
+          amountLabels.forEach(function (pair) {
+            if (!pair[1]) return;
+            var row = document.createElement('tr');
+            var labelCell = document.createElement('td');
+            labelCell.style.cssText = 'padding:4px 16px 4px 0;font-size:14px;color:#555;';
+            labelCell.textContent = pair[0];
+            var valueCell = document.createElement('td');
+            valueCell.style.cssText = 'padding:4px 0;font-size:14px;font-weight:600;';
+            valueCell.textContent = pair[1];
+            row.appendChild(labelCell);
+            row.appendChild(valueCell);
+            amountTable.appendChild(row);
+          });
+          report.appendChild(amountTable);
+        }
+      } else {
+        var noDetails = document.createElement('div');
+        noDetails.style.cssText = 'font-size:13px;color:#888;margin-bottom:20px;font-style:italic;';
+        noDetails.textContent = 'No job description or amounts were entered for this job.';
+        report.appendChild(noDetails);
+      }
+
+      var photosHeading = document.createElement('div');
+      photosHeading.style.cssText = 'font-weight:600;font-size:14px;margin-bottom:10px;';
+      photosHeading.textContent = 'Photos (' + jobRecords.length + ')';
+      report.appendChild(photosHeading);
+
+      var photoGrid = document.createElement('div');
+      jobRecords.forEach(function (record) {
+        var card = photoCards[record.id];
+        if (card) photoGrid.appendChild(card);
+      });
+      report.appendChild(photoGrid);
+
+      printArea.appendChild(report);
+
+      var toolbar = document.getElementById('toolbar');
+      var table = document.getElementById('photoTable');
+      var prevToolbarDisplay = toolbar.style.display;
+      var prevTableDisplay = table.style.display;
+
+      toolbar.style.display = 'none';
+      table.style.display = 'none';
+      printArea.style.display = 'block';
+
+      window.print();
+
+      toolbar.style.display = prevToolbarDisplay;
+      table.style.display = prevTableDisplay;
+      printArea.style.display = 'none';
+    }
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function fetchSession(onReady) {
+      geotabApi.getSession(function (session) {
+        sessionInfo = {
+          database: session.database,
+          sessionId: session.sessionId,
+          userName: session.userName,
+          server: session.server || session.path || window.location.hostname
+        };
+        if (onReady) onReady();
+      });
+    }
+
+    geotab.addin.fleetWolfRoofSolarGallery = function () {
+      return {
+        initialize: function (api, state, callback) {
+          geotabApi = api;
+          callback();
+          fetchSession(function () {
+            main();
+          });
+        },
+        focus: function (api, state) {
+          loadPhotos();
+        },
+        blur: function () {}
+      };
+    };
+  </script>
+</body>
+</html>
