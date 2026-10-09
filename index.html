@@ -9,229 +9,370 @@
     body {
       font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
       margin: 0;
-      padding: 20px 16px 48px 16px;
-      background: #f1f3f4;
-      color: #202124;
+      background: #f2f5f8;
+      color: #1b2a3a;
       -webkit-text-size-adjust: 100%;
     }
-    #app { max-width: 440px; margin: 0 auto; }
-    .brand {
-      font-size: 13px;
+    button { font-family: inherit; }
+
+    /* Top bar (Drive-style blue) */
+    #topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: 68px;
+      background: #0069ba;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 20px;
+    }
+    #topbar.hasBack { padding-left: 4px; }
+    #backBtn {
+      display: none;
+      width: 48px;
+      height: 48px;
+      border: none;
+      background: transparent;
+      align-items: center;
+      justify-content: center;
+      margin-right: 4px;
+    }
+    #topbar.hasBack #backBtn { display: flex; }
+    #topTitle { font-size: 20px; font-weight: 600; }
+    #topSub { font-size: 13px; opacity: 0.9; margin-top: 2px; }
+    #topTitleBox { min-width: 0; }
+    #groupNote { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    #app { max-width: 440px; margin: 0 auto; padding: 0 16px 28px 16px; }
+    .view { display: none; padding-top: 18px; }
+    #view-home { display: block; }
+
+    .fieldLabel { display: block; font-size: 14px; color: #4a5b6c; margin: 0 2px 8px 2px; }
+    .sectionLabel {
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #e8710a;
-      margin: 4px 4px 2px 4px;
-    }
-    h2 { font-size: 26px; margin: 0 4px 16px 4px; color: #202124; }
-    .card {
-      background: #fff;
-      border-radius: 18px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    }
-    .card h3 {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #5f6368;
-      margin: 0 0 16px 0;
-    }
-    .field { margin-bottom: 18px; }
-    .field:last-child { margin-bottom: 0; }
-    .field label {
-      display: block;
-      font-size: 14px;
-      color: #5f6368;
-      margin: 0 2px 8px 2px;
+      letter-spacing: 0.08em;
+      color: #4a5b6c;
+      margin: 22px 2px 8px 2px;
     }
     #jobNumber, #customerName, #customerAccount, #customerAddress, #jobNotes {
       width: 100%;
       min-height: 56px;
-      padding: 14px 16px;
+      padding: 12px 16px;
       font-size: 18px;
       font-family: inherit;
-      color: #202124;
+      color: #1b2a3a;
       background: #fff;
-      border: 2px solid #dadce0;
+      border: 2px solid #c5ced8;
       border-radius: 12px;
       -webkit-appearance: none;
       appearance: none;
     }
+    #jobNumber { min-height: 60px; font-size: 22px; }
     #jobNumber:focus, #customerName:focus, #customerAccount:focus, #customerAddress:focus, #jobNotes:focus {
       outline: none;
-      border-color: #e8710a;
+      border-color: #0069ba;
     }
-    #jobNotes { min-height: 120px; resize: vertical; line-height: 1.4; }
-    #notesCount { margin-top: 8px; font-size: 13px; color: #80868b; text-align: right; }
-    #picCounterNote { margin-top: 10px; font-size: 14px; color: #5f6368; min-height: 18px; }
+    #jobNotes { min-height: 150px; resize: none; line-height: 1.4; }
+    #notesCount { font-size: 13px; color: #4a5b6c; }
+    .fieldBlock { margin-bottom: 16px; }
 
-    /* Stage: three big buttons side by side */
-    .stageRow { display: flex; gap: 12px; }
-    .stageBtn {
-      flex: 1;
-      min-height: 64px;
-      font-size: 18px;
-      font-weight: 600;
-      font-family: inherit;
-      color: #202124;
+    /* Big row tiles (Job details, Notes) */
+    .rowTile {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      height: 84px;
+      padding: 0 16px;
       background: #fff;
-      border: 2px solid #dadce0;
+      border: 1px solid #d5dce4;
+      border-radius: 16px;
+      text-align: left;
+      color: #1b2a3a;
+      margin-bottom: 12px;
+    }
+    .rowTile .ico {
+      width: 44px; height: 44px; border-radius: 22px; background: #e3f0fb;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .rowTile .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .rowTile .t1 { font-size: 17px; font-weight: 600; }
+    .rowTile .t2 { font-size: 14px; color: #4a5b6c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Two square-ish tiles (Stage, Photo of) */
+    .twoTiles { display: flex; gap: 12px; }
+    .pickTile {
+      flex: 1 1 0;
+      min-width: 0;
+      height: 120px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      background: #fff;
+      border: 1px solid #d5dce4;
+      border-radius: 16px;
+      text-align: left;
+      color: #1b2a3a;
+    }
+    .pickTile .ico {
+      width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pickTile .lbl { font-size: 13px; color: #4a5b6c; }
+    .pickTile .val {
+      font-size: 22px; font-weight: 700; line-height: 1.15; max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pickTile .val.empty { color: #0069ba; }
+    .pickTile.needs { border: 2px solid #0069ba; }
+
+    #cameraBtn, #uploadBtn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      height: 68px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      background: #0069ba;
+      border: none;
       border-radius: 14px;
     }
-    /* Subject: two-column grid of big tiles */
-    .subjectGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .subjectBtn {
-      min-height: 64px;
-      padding: 8px 10px;
+    #chooseExistingBtn, #retakeBtn, #doneDetailsBtn {
+      display: block;
+      width: 100%;
+      height: 56px;
+      margin-top: 12px;
       font-size: 17px;
       font-weight: 600;
-      font-family: inherit;
-      line-height: 1.2;
-      color: #202124;
+      color: #0069ba;
       background: #fff;
-      border: 2px solid #dadce0;
+      border: 2px solid #0069ba;
       border-radius: 14px;
     }
-    .stageBtn.selected, .subjectBtn.selected {
-      background: #e8710a;
-      border-color: #e8710a;
+    #doneDetailsBtn {
+      height: 60px;
+      margin-top: 8px;
+      font-size: 20px;
+      font-weight: 700;
       color: #fff;
+      background: #0069ba;
+      border: none;
     }
-    .pickLabel { font-size: 14px; color: #5f6368; margin: 0 2px 10px 2px; }
-    .pickLabel.second { margin-top: 24px; }
+    #cameraBtn:disabled, #chooseExistingBtn:disabled, #uploadBtn:disabled { opacity: 0.45; }
+    #picCounterNote { margin-top: 14px; text-align: center; font-size: 14px; color: #4a5b6c; min-height: 18px; }
+
+    /* Stage / Subject pickers */
+    .optBtn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 88px;
+      padding: 0 20px;
+      margin-bottom: 12px;
+      font-size: 22px;
+      font-weight: 600;
+      color: #1b2a3a;
+      background: #fff;
+      border: 1px solid #d5dce4;
+      border-radius: 16px;
+    }
+    .subjectGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .subjectBtn {
+      min-height: 84px;
+      padding: 8px 12px;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: #1b2a3a;
+      background: #fff;
+      border: 1px solid #d5dce4;
+      border-radius: 16px;
+    }
+    .optBtn.selected, .subjectBtn.selected {
+      background: #e3f0fb;
+      border: 2px solid #0069ba;
+      color: #0069ba;
+      font-weight: 700;
+    }
+
+    /* Photo ready */
+    #preview {
+      display: block;
+      width: 100%;
+      max-height: 55vh;
+      object-fit: contain;
+      background: #d5dce4;
+      border-radius: 16px;
+    }
+    #readyInfo {
+      background: #fff;
+      border: 1px solid #d5dce4;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin: 14px 0 18px 0;
+    }
+    #readyLine1 { font-size: 17px; font-weight: 600; }
+    #readyLine2 { font-size: 14px; color: #4a5b6c; margin-top: 4px; }
 
     /* real dropdowns stay in the page (the code reads them) but are not shown */
     #photoStage, #photoSubject { display: none; }
 
-    #groupNote {
-      display: inline-block;
-      max-width: 100%;
-      font-size: 13px;
-      color: #5f6368;
-      background: #e8eaed;
-      border-radius: 999px;
-      padding: 6px 14px;
-      margin: 0 4px 18px 4px;
-    }
-
-    #cameraBtn, #chooseExistingBtn, #uploadBtn {
-      display: block;
-      width: 100%;
-      min-height: 64px;
-      font-size: 19px;
-      font-weight: 700;
-      font-family: inherit;
-      color: #fff;
-      border: none;
-      border-radius: 14px;
-    }
-    #cameraBtn { background: #e8710a; margin-bottom: 16px; }
-    #chooseExistingBtn { background: #5f6368; }
-    #cameraBtn:disabled, #chooseExistingBtn:disabled { opacity: 0.45; }
-    #preview {
-      display: none;
-      width: 100%;
-      margin-top: 20px;
-      border-radius: 14px;
-    }
-    #uploadBtn {
-      display: none;
-      margin-top: 20px;
-      background: #1e8e3e;
-    }
-    #uploadBtn:disabled { opacity: 0.45; }
     #status {
-      position: sticky;
-      top: 8px;
-      z-index: 10;
-      margin: 0 0 16px 0;
+      position: fixed;
+      top: 76px;
+      left: 12px;
+      right: 12px;
+      max-width: 416px;
+      margin: 0 auto;
+      z-index: 40;
       padding: 14px 18px;
-      font-size: 17px;
+      font-size: 16px;
       line-height: 1.4;
-      color: #202124;
+      color: #1b2a3a;
       background: #fff;
-      border-left: 6px solid #e8710a;
+      border-left: 6px solid #0069ba;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.22);
     }
     #status:empty { display: none; }
   </style>
 </head>
 <body>
+
+<div id="topbar">
+  <button type="button" id="backBtn" aria-label="Back">
+    <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+  </button>
+  <div id="topTitleBox">
+    <div id="topTitle">Roof &amp; Solar Photos</div>
+    <div id="topSub"><span id="groupNote"></span></div>
+  </div>
+</div>
+<div id="status"></div>
+
 <div id="app">
 
-  <div id="status"></div>
-  <div class="brand">Fleet Wolf Roofing &amp; Solar</div>
-  <h2>New Job Photo</h2>
-  <div id="groupNote"></div>
+  <!-- HOME -->
+  <div class="view" id="view-home">
+    <label class="fieldLabel" for="jobNumber">Job #</label>
+    <input type="text" id="jobNumber" autocomplete="off">
 
-  <div class="card">
-    <h3>1 &middot; The job</h3>
-    <div class="field">
-      <label for="jobNumber">Job # / Work Order #</label>
-      <input type="text" id="jobNumber" autocomplete="off">
-      <div id="picCounterNote"></div>
+    <div class="sectionLabel">THE JOB</div>
+    <button type="button" class="rowTile" id="detailsTile">
+      <span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0069ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <span class="txt"><span class="t1">Job details</span><span class="t2" id="detailsSummary">Customer, account #, address</span></span>
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a5b6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+    <button type="button" class="rowTile" id="notesTile">
+      <span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0069ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></span>
+      <span class="txt"><span class="t1">Notes</span><span class="t2" id="notesSummary">Tap to type or dictate</span></span>
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a5b6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+
+    <div class="sectionLabel" style="margin-top: 12px">THIS PHOTO</div>
+    <div class="twoTiles">
+      <button type="button" class="pickTile" id="stageTile">
+        <span class="ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0069ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <span><span class="lbl">Stage</span><br><span class="val empty" id="stageValue">Choose</span></span>
+      </button>
+      <button type="button" class="pickTile" id="subjectTile">
+        <span class="ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0069ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 14h6l-1 7 8-11h-6l1-7z"/></svg></span>
+        <span><span class="lbl">Photo of</span><br><span class="val empty" id="subjectValue">Choose</span></span>
+      </button>
     </div>
-    <div class="field">
-      <label for="customerName">Customer name</label>
+
+    <div style="height: 28px"></div>
+    <input type="file" accept="image/*" capture="environment" id="fileInputCamera" style="display:none">
+    <input type="file" accept="image/*" id="fileInputLibrary" style="display:none">
+    <button type="button" id="cameraBtn">
+      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></svg>
+      Take Photo
+    </button>
+    <button type="button" id="chooseExistingBtn">Choose Existing Photo</button>
+    <div id="picCounterNote"></div>
+  </div>
+
+  <!-- JOB DETAILS (+ notes) -->
+  <div class="view" id="view-details">
+    <div class="fieldBlock">
+      <label class="fieldLabel" for="customerName">Customer name</label>
       <input type="text" id="customerName" maxlength="100" autocomplete="off">
     </div>
-    <div class="field">
-      <label for="customerAccount">Customer account #</label>
+    <div class="fieldBlock">
+      <label class="fieldLabel" for="customerAccount">Account #</label>
       <input type="text" id="customerAccount" maxlength="40" autocomplete="off">
     </div>
-    <div class="field">
-      <label for="customerAddress">Job address</label>
+    <div class="fieldBlock">
+      <label class="fieldLabel" for="customerAddress">Job address</label>
       <input type="text" id="customerAddress" maxlength="200" autocomplete="off">
     </div>
-  </div>
-
-  <div class="card">
-    <h3>2 &middot; Notes</h3>
-    <div class="field">
-      <label for="jobNotes">Optional &mdash; tap the microphone on your keyboard to dictate</label>
+    <div class="fieldBlock">
+      <div style="display:flex; justify-content:space-between; margin: 0 2px 8px 2px">
+        <label for="jobNotes" style="font-size:14px; color:#4a5b6c">Notes (tap the keyboard mic to dictate)</label>
+        <span id="notesCount">0 / 500</span>
+      </div>
       <textarea id="jobNotes" maxlength="500"></textarea>
-      <div id="notesCount">0 / 500</div>
+    </div>
+    <button type="button" id="doneDetailsBtn">Done</button>
+  </div>
+
+  <!-- STAGE -->
+  <div class="view" id="view-stage">
+    <div id="stageGroup">
+      <button type="button" class="optBtn stageBtn" data-value="Before">Before</button>
+      <button type="button" class="optBtn stageBtn" data-value="During">During</button>
+      <button type="button" class="optBtn stageBtn" data-value="After">After</button>
     </div>
   </div>
 
-  <div class="card">
-    <h3>3 &middot; This photo</h3>
-    <div class="pickLabel">Stage</div>
-    <div class="stageRow" id="stageGroup">
-      <button type="button" class="stageBtn" data-value="Before">Before</button>
-      <button type="button" class="stageBtn" data-value="During">During</button>
-      <button type="button" class="stageBtn" data-value="After">After</button>
-    </div>
-    <div class="pickLabel second">What is it a photo of?</div>
+  <!-- SUBJECT -->
+  <div class="view" id="view-subject">
     <div class="subjectGrid" id="subjectGroup">
-        <button type="button" class="subjectBtn" data-value="NorthSlope">Roof · North</button>
-        <button type="button" class="subjectBtn" data-value="SouthSlope">Roof · South</button>
-        <button type="button" class="subjectBtn" data-value="EastSlope">Roof · East</button>
-        <button type="button" class="subjectBtn" data-value="WestSlope">Roof · West</button>
-        <button type="button" class="subjectBtn" data-value="SolarPanels">Solar Panels</button>
-        <button type="button" class="subjectBtn" data-value="Damage">Damage</button>
-        <button type="button" class="subjectBtn" data-value="Meter">Meter</button>
-        <button type="button" class="subjectBtn" data-value="BreakerBox">Breaker / Circuit Box</button>
-        <button type="button" class="subjectBtn" data-value="Inverter">Inverter</button>
-        <button type="button" class="subjectBtn" data-value="Permit">Permit</button>
-        <button type="button" class="subjectBtn" data-value="Other">Other</button>
+      <button type="button" class="subjectBtn" data-value="NorthSlope">Roof &ndash; North slope</button>
+      <button type="button" class="subjectBtn" data-value="SouthSlope">Roof &ndash; South slope</button>
+      <button type="button" class="subjectBtn" data-value="EastSlope">Roof &ndash; East slope</button>
+      <button type="button" class="subjectBtn" data-value="WestSlope">Roof &ndash; West slope</button>
+      <button type="button" class="subjectBtn" data-value="SolarPanels">Solar Panels</button>
+      <button type="button" class="subjectBtn" data-value="Damage">Damage</button>
+      <button type="button" class="subjectBtn" data-value="Meter">Meter</button>
+      <button type="button" class="subjectBtn" data-value="BreakerBox">Breaker / Circuit Box</button>
+      <button type="button" class="subjectBtn" data-value="Inverter">Inverter</button>
+      <button type="button" class="subjectBtn" data-value="Permit">Permit</button>
+      <button type="button" class="subjectBtn" data-value="Other">Other</button>
     </div>
-    <select id="photoStage">
+  </div>
+
+  <!-- PHOTO READY -->
+  <div class="view" id="view-ready">
+    <img id="preview" alt="preview">
+    <div id="readyInfo">
+      <div id="readyLine1"></div>
+      <div id="readyLine2"></div>
+    </div>
+    <button type="button" id="uploadBtn">Upload Photo</button>
+    <button type="button" id="retakeBtn">Retake</button>
+  </div>
+
+  <select id="photoStage">
     <option value="">Stage...</option>
     <option value="Before">Before</option>
     <option value="During">During</option>
     <option value="After">After</option>
-    </select>
-    <select id="photoSubject">
+  </select>
+  <select id="photoSubject">
     <option value="">What is the photo of?</option>
-    <option value="NorthSlope">Roof · North</option>
-    <option value="SouthSlope">Roof · South</option>
-    <option value="EastSlope">Roof · East</option>
-    <option value="WestSlope">Roof · West</option>
+    <option value="NorthSlope">Roof &ndash; North slope</option>
+    <option value="SouthSlope">Roof &ndash; South slope</option>
+    <option value="EastSlope">Roof &ndash; East slope</option>
+    <option value="WestSlope">Roof &ndash; West slope</option>
     <option value="SolarPanels">Solar Panels</option>
     <option value="Damage">Damage</option>
     <option value="Meter">Meter</option>
@@ -239,19 +380,7 @@
     <option value="Inverter">Inverter</option>
     <option value="Permit">Permit</option>
     <option value="Other">Other</option>
-    </select>
-  </div>
-
-  <div class="card">
-    <h3>4 &middot; Take the photo</h3>
-    <input type="file" accept="image/*" capture="environment" id="fileInputCamera" style="display:none">
-    <input type="file" accept="image/*" id="fileInputLibrary" style="display:none">
-    <button id="cameraBtn">&#128247; Take Photo</button>
-    <button id="chooseExistingBtn">&#128444;&#65039; Choose Existing Photo</button>
-    <img id="preview" alt="preview">
-    <button id="uploadBtn">Upload to Geotab</button>
-  </div>
-
+  </select>
 </div>
 
 <script>
@@ -266,20 +395,25 @@
     var lastDetailsJob = null; // Job # the customer boxes currently belong to
     var deviceGroupNames = null; // null = not looked up yet, [] = none found
 
-    // Auto "Pic N" numbering — tracks the last Job # a photo was uploaded
-    // under, in this session only. As long as the driver keeps the same
-    // Job # typed in, each successive upload automatically becomes
-    // Pic 2, Pic 3, etc. The moment the Job # field changes, this resets
-    // to Pic 1 for the new job. This also means drivers no longer need to
-    // manually vary anything to avoid duplicate-looking uploads.
+    // Auto "Pic N" numbering: tracks the last Job # a photo was uploaded
+    // under, in this session only. Same Job # = Pic 2, Pic 3, ... A new
+    // Job # resets to Pic 1.
     var lastUploadedJobNumber = null;
     var picCounter = 0;
 
-    // Hard lock against double-submits (e.g. a driver double-tapping or
-    // retrying because nothing seemed to happen). isUploading is checked
-    // FIRST, before even looking at the disabled attribute, as a backup
-    // in case a second tap sneaks in during the same event-loop tick.
+    // Hard lock against double-submits.
     var isUploading = false;
+
+    var SUBJECT_TEXT = {
+      NorthSlope: 'Roof – North', SouthSlope: 'Roof – South',
+      EastSlope: 'Roof – East', WestSlope: 'Roof – West',
+      SolarPanels: 'Solar Panels', Damage: 'Damage', Meter: 'Meter',
+      BreakerBox: 'Breaker Box', Inverter: 'Inverter', Permit: 'Permit', Other: 'Other'
+    };
+    var VIEW_TITLES = {
+      home: 'Roof & Solar Photos', details: 'Job details', stage: 'Stage',
+      subject: 'Photo of', ready: 'Photo ready'
+    };
 
     function main() {
       var jobNumberEl = document.getElementById('jobNumber');
@@ -288,35 +422,6 @@
       var customerAddressEl = document.getElementById('customerAddress');
       var jobNotesEl = document.getElementById('jobNotes');
       var notesCountEl = document.getElementById('notesCount');
-
-      // The big Stage / Subject buttons set the (hidden) dropdowns the rest of
-      // the code reads, and show which one is selected.
-      function paintPicks() {
-        Array.prototype.forEach.call(document.querySelectorAll('.stageBtn'), function (b) {
-          b.classList.toggle('selected', b.getAttribute('data-value') === photoStageEl.value);
-        });
-        Array.prototype.forEach.call(document.querySelectorAll('.subjectBtn'), function (b) {
-          b.classList.toggle('selected', b.getAttribute('data-value') === photoSubjectEl.value);
-        });
-      }
-      Array.prototype.forEach.call(document.querySelectorAll('.stageBtn'), function (b) {
-        b.addEventListener('click', function () {
-          photoStageEl.value = b.getAttribute('data-value');
-          paintPicks();
-        });
-      });
-      Array.prototype.forEach.call(document.querySelectorAll('.subjectBtn'), function (b) {
-        b.addEventListener('click', function () {
-          photoSubjectEl.value = b.getAttribute('data-value');
-          paintPicks();
-        });
-      });
-      window.paintPicks = paintPicks;
-
-      function updateNotesCount() {
-        notesCountEl.textContent = jobNotesEl.value.length + ' / 500';
-      }
-      jobNotesEl.addEventListener('input', updateNotesCount);
       var photoStageEl = document.getElementById('photoStage');
       var photoSubjectEl = document.getElementById('photoSubject');
       var groupNoteEl = document.getElementById('groupNote');
@@ -327,7 +432,89 @@
       var chooseExistingBtn = document.getElementById('chooseExistingBtn');
       var preview = document.getElementById('preview');
       var uploadBtn = document.getElementById('uploadBtn');
+      var retakeBtn = document.getElementById('retakeBtn');
       var statusEl = document.getElementById('status');
+      var topbar = document.getElementById('topbar');
+      var topTitle = document.getElementById('topTitle');
+
+      // ---- Screens -------------------------------------------------------
+      var VIEWS = ['home', 'details', 'stage', 'subject', 'ready'];
+      var currentView = 'home';
+      function showView(name) {
+        currentView = name;
+        VIEWS.forEach(function (v) {
+          document.getElementById('view-' + v).style.display = (v === name) ? 'block' : 'none';
+        });
+        topTitle.textContent = VIEW_TITLES[name];
+        topbar.classList.toggle('hasBack', name !== 'home');
+        updateSummaries();
+        window.scrollTo(0, 0);
+      }
+      document.getElementById('backBtn').addEventListener('click', function () { showView('home'); });
+      document.getElementById('doneDetailsBtn').addEventListener('click', function () { showView('home'); });
+      document.getElementById('detailsTile').addEventListener('click', function () {
+        showView('details');
+        customerNameEl.focus();
+      });
+      document.getElementById('notesTile').addEventListener('click', function () {
+        showView('details');
+        jobNotesEl.focus();
+      });
+      document.getElementById('stageTile').addEventListener('click', function () { showView('stage'); });
+      document.getElementById('subjectTile').addEventListener('click', function () { showView('subject'); });
+      statusEl.addEventListener('click', function () { statusEl.textContent = ''; });
+
+      function shorten(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+      function updateSummaries() {
+        var d = window.getJobDetails ? window.getJobDetails() : { customer: '', address: '', notes: '' };
+        var parts = [];
+        if (d.customer) parts.push(d.customer);
+        if (d.address) parts.push(d.address);
+        document.getElementById('detailsSummary').textContent =
+          parts.length ? parts.join(' · ') : 'Customer, account #, address';
+        document.getElementById('notesSummary').textContent =
+          d.notes ? shorten(d.notes.replace(/\s+/g, ' '), 40) : 'Tap to type or dictate';
+
+        var stageVal = document.getElementById('stageValue');
+        stageVal.textContent = photoStageEl.value || 'Choose';
+        stageVal.classList.toggle('empty', !photoStageEl.value);
+        var subjVal = document.getElementById('subjectValue');
+        subjVal.textContent = photoSubjectEl.value ? (SUBJECT_TEXT[photoSubjectEl.value] || photoSubjectEl.value) : 'Choose';
+        subjVal.classList.toggle('empty', !photoSubjectEl.value);
+      }
+
+      // The big Stage / Subject buttons set the (hidden) dropdowns the rest of
+      // the code reads, and show which one is selected.
+      function paintPicks() {
+        Array.prototype.forEach.call(document.querySelectorAll('.stageBtn'), function (b) {
+          b.classList.toggle('selected', b.getAttribute('data-value') === photoStageEl.value);
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('.subjectBtn'), function (b) {
+          b.classList.toggle('selected', b.getAttribute('data-value') === photoSubjectEl.value);
+        });
+        updateSummaries();
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('.stageBtn'), function (b) {
+        b.addEventListener('click', function () {
+          photoStageEl.value = b.getAttribute('data-value');
+          paintPicks();
+          showView('home');
+        });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.subjectBtn'), function (b) {
+        b.addEventListener('click', function () {
+          photoSubjectEl.value = b.getAttribute('data-value');
+          paintPicks();
+          showView('home');
+        });
+      });
+      window.paintPicks = paintPicks;
+
+      function updateNotesCount() {
+        notesCountEl.textContent = jobNotesEl.value.length + ' / 500';
+      }
+      jobNotesEl.addEventListener('input', updateNotesCount);
 
       function requireJobNumber() {
         if (!jobNumberEl.value.trim()) {
@@ -337,38 +524,37 @@
         }
         if (!photoStageEl.value) {
           statusEl.textContent = 'Pick the Stage first (Before / During / After).';
-          document.getElementById('stageGroup').scrollIntoView({ block: 'center' });
+          showView('stage');
           return false;
         }
         if (!photoSubjectEl.value) {
           statusEl.textContent = 'Pick what the photo is of first.';
-          document.getElementById('subjectGroup').scrollIntoView({ block: 'center' });
+          showView('subject');
           return false;
         }
         return true;
       }
 
-      // Shows which Geotab group(s) this truck is in, so the crew (and you,
-      // while testing) can see the division is being picked up automatically.
+      // Shows which Geotab group(s) this truck is in, so the crew can see the
+      // division is being picked up automatically.
       window.showGroupNote = function () {
         if (deviceGroupNames === null) {
-          groupNoteEl.textContent = 'Truck group: looking up...';
+          groupNoteEl.textContent = 'Truck: looking up...';
         } else if (!deviceGroupNames.length) {
-          groupNoteEl.textContent = 'Truck group: (none found)';
+          groupNoteEl.textContent = 'Truck: (no group found)';
         } else {
-          groupNoteEl.textContent = 'Truck group: ' + deviceGroupNames.join(', ');
+          groupNoteEl.textContent = 'Truck: ' + deviceGroupNames.join(', ');
         }
       };
       window.showGroupNote();
 
+      function nextPicNumber() {
+        var job = jobNumberEl.value.trim();
+        return (job === lastUploadedJobNumber) ? (picCounter + 1) : 1;
+      }
       function updatePicCounterNote() {
         var job = jobNumberEl.value.trim();
-        if (!job) {
-          picCounterNoteEl.textContent = '';
-          return;
-        }
-        var nextPic = (job === lastUploadedJobNumber) ? (picCounter + 1) : 1;
-        picCounterNoteEl.textContent = 'This will be tagged: Pic ' + nextPic;
+        picCounterNoteEl.textContent = job ? ('Next photo will be tagged: Pic ' + nextPicNumber()) : '';
       }
       jobNumberEl.addEventListener('input', updatePicCounterNote);
 
@@ -384,6 +570,7 @@
           jobNotesEl.value = '';
           updateNotesCount();
           lastDetailsJob = null;
+          updateSummaries();
         }
       });
 
@@ -396,8 +583,7 @@
         };
       };
 
-      // Live capture — uses Drive's native camera modal. Confirmed working
-      // correctly (full frame, no cropping) for actually taking a new photo.
+      // Live capture: uses Drive's native camera modal.
       cameraBtn.addEventListener('click', function () {
         if (!requireJobNumber()) return;
 
@@ -414,12 +600,9 @@
         }
       });
 
-      // Choosing an already-taken photo — deliberately bypasses Geotab's
-      // native "Upload" option inside the camera modal. That native path
-      // was found to crop/misplace photos (fitting them into the wrong
-      // canvas aspect ratio) when selecting an existing gallery photo.
-      // Using the phone's own file/photo picker instead avoids that bug
-      // entirely and returns the original, unmodified image.
+      // Choosing an already-taken photo: deliberately bypasses Geotab's native
+      // "Upload" option inside the camera modal (it crops photos). The phone's
+      // own picker returns the original, unmodified image.
       chooseExistingBtn.addEventListener('click', function () {
         if (!requireJobNumber()) return;
         fileInputLibrary.click();
@@ -441,17 +624,32 @@
         var reader = new FileReader();
         reader.onload = function (evt) {
           preview.src = evt.target.result;
-          preview.style.display = 'block';
-          uploadBtn.style.display = 'inline-block';
+          var d = window.getJobDetails();
+          document.getElementById('readyLine1').textContent =
+            'Job ' + jobNumberEl.value.trim() + ' · ' + photoStageEl.value + ' · ' +
+            (SUBJECT_TEXT[photoSubjectEl.value] || photoSubjectEl.value);
+          var l2 = [];
+          if (d.customer) l2.push(d.customer);
+          if (d.address) l2.push(d.address);
+          l2.push('Pic ' + nextPicNumber());
+          document.getElementById('readyLine2').textContent = l2.join(' · ');
           uploadBtn.disabled = false;
           statusEl.textContent = 'Ready to upload.';
-          updatePicCounterNote();
+          showView('ready');
         };
         reader.readAsDataURL(blob);
       }
 
+      retakeBtn.addEventListener('click', function () {
+        if (isUploading) return;
+        selectedBlob = null;
+        preview.removeAttribute('src');
+        statusEl.textContent = '';
+        showView('home');
+      });
+
       uploadBtn.addEventListener('click', function () {
-        // Guard checked BEFORE anything else — this is what actually
+        // Guard checked BEFORE anything else; this is what actually
         // stops a rapid second tap, not just the disabled attribute.
         if (isUploading) return;
         if (!selectedBlob) return;
@@ -468,12 +666,12 @@
         statusEl.textContent = 'Uploading, please wait...';
 
         var job = jobNumberEl.value.trim();
-        var picNumber = (job === lastUploadedJobNumber) ? (picCounter + 1) : 1;
+        var picNumber = nextPicNumber();
 
         uploadPhoto(selectedBlob, job, photoStageEl.value, photoSubjectEl.value, picNumber, statusEl, function () {
-          // On success only — record the counter advance and reset for
-          // the next photo. On failure, do NOT advance, so a retry gets
-          // the same Pic number rather than skipping one.
+          // On success only: record the counter advance and reset for the
+          // next photo. On failure, do NOT advance, so a retry gets the same
+          // Pic number rather than skipping one.
           lastUploadedJobNumber = job;
           lastDetailsJob = job;
           picCounter = picNumber;
@@ -482,13 +680,12 @@
           uploadBtn.disabled = false;
           cameraBtn.disabled = false;
           chooseExistingBtn.disabled = false;
-          uploadBtn.style.display = 'none';
           selectedBlob = null;
-          preview.style.display = 'none';
+          preview.removeAttribute('src');
           photoSubjectEl.value = ''; // Stage stays; Subject must be picked again for the next photo
           paintPicks();
-          document.getElementById('stageGroup').scrollIntoView({ block: 'center' });
           updatePicCounterNote();
+          showView('home');
         }, function () {
           isUploading = false;
           uploadBtn.disabled = false;
@@ -496,6 +693,9 @@
           chooseExistingBtn.disabled = false;
         });
       });
+
+      paintPicks();
+      showView('home');
     }
 
     function base64ToBlob(base64Data) {
