@@ -798,11 +798,14 @@
             var job = meta.job || (p ? p[1] : 'Unknown');
             var stage = meta.stage || (p ? p[2] : '');
             var subjKey = meta.subject || (p ? p[3].replace(/_Pic_\d+$/, '') : '');
-            var o = todayJobs[job] || (todayJobs[job] = { job: job, customer: '', photos: [], last: 0 });
+            var o = todayJobs[job] || (todayJobs[job] = { job: job, customer: '', account: '', address: '', notes: [], photos: [], last: 0 });
             if (!o.customer && meta.customer) o.customer = meta.customer;
+            if (!o.account && meta.account) o.account = meta.account;
+            if (!o.address && meta.address) o.address = meta.address;
             var t = when ? when.getTime() : 0;
             if (t > o.last) o.last = t;
             o.photos.push({ time: t, stage: stage, subject: SUBJECT_TEXT[subjKey] || subjKey });
+            if (meta.notes) o.notes.push({ time: t, text: meta.notes });
           });
           renderToday();
         }, function (err) {
@@ -842,6 +845,28 @@
         if (o.customer) head.appendChild(document.createTextNode(' \u00b7 ' + o.customer));
         var list = document.getElementById('jobPhotos');
         clearEl(list);
+        function box(label, text) {
+          var row = document.createElement('div'); row.className = 'photoLine';
+          var l = document.createElement('div'); l.className = 'when'; l.style.marginBottom = '4px';
+          l.textContent = label;
+          var v = document.createElement('div'); v.style.whiteSpace = 'pre-wrap';
+          v.textContent = text;
+          row.appendChild(l); row.appendChild(v);
+          list.appendChild(row);
+        }
+        if (o.account) box('Account #', o.account);
+        if (o.address) box('Job address', o.address);
+        // Notes: each distinct note once, oldest first (crews repeat the same note on every photo).
+        var seen = {}, notes = o.notes.slice().sort(function (a, b) { return a.time - b.time; });
+        notes.forEach(function (n) {
+          if (seen[n.text]) return;
+          seen[n.text] = true;
+          box('Notes \u00b7 ' + (n.time ? fmtTime(new Date(n.time)) : ''), n.text);
+        });
+        var ph = document.createElement('div');
+        ph.className = 'sectionLabel';
+        ph.textContent = 'PHOTOS (' + o.photos.length + ')';
+        list.appendChild(ph);
         o.photos.slice().sort(function (a, b) { return a.time - b.time; }).forEach(function (p) {
           var row = document.createElement('div'); row.className = 'photoLine';
           row.textContent = (p.stage ? p.stage + ' \u00b7 ' : '') + p.subject;
