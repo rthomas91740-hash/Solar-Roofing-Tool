@@ -321,7 +321,7 @@
     <div id="picCounterNote"></div>
     <button type="button" class="rowTile" id="todayTile" style="margin-top: 18px">
       <span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0069ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg></span>
-      <span class="txt"><span class="t1">Today's jobs</span><span class="t2">See what was submitted today</span></span>
+      <span class="txt"><span class="t1">Today's jobs</span><span class="t2">See what you submitted today</span></span>
       <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a5b6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
     </button>
   </div>
@@ -765,7 +765,6 @@
       });
 
       // ---- Today's jobs ----------------------------------------------------
-      var todayAllTrucks = false;
       var todayJobs = {};
       var JOB_RE = /^job-(.+)-type-([A-Za-z0-9]+)-label-(.+)-\d+(?:-ARCHIVED)?\.[a-z]+$/;
       function fmtTime(d) { return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
@@ -777,10 +776,9 @@
         var toggle = document.getElementById('todayToggle');
         clearEl(listEl);
         emptyEl.textContent = 'Loading...';
-        var canFilter = !!deviceId;
-        if (!canFilter) todayAllTrucks = true;
-        toggle.style.display = canFilter ? 'block' : 'none';
-        toggle.textContent = todayAllTrucks ? 'Showing: All trucks. Tap for this truck only' : 'Showing: This truck. Tap for all trucks';
+        // Only the logged-in driver's own jobs are ever shown.
+        toggle.style.display = 'none';
+        if (!driverId) { emptyEl.textContent = 'Could not tell who is logged in yet. Wait a moment and try again.'; return; }
         if (!geotabApi) { emptyEl.textContent = 'Not connected to Geotab yet. Open this from inside Drive.'; return; }
         var start = new Date(); start.setHours(0, 0, 0, 0);
         geotabApi.call('Get', {
@@ -790,7 +788,7 @@
           todayJobs = {};
           (records || []).forEach(function (r) {
             if (!r || !r.name || /-ARCHIVED\.[a-z]+$/i.test(r.name)) return;
-            if (!todayAllTrucks && deviceId && !(r.device && r.device.id === deviceId)) return;
+            if (!(r.driver && r.driver.id === driverId)) return;
             var when = r.fromDate ? new Date(r.fromDate) : null;
             if (when && when < start) return;
             var meta = r.metaData || {};
@@ -819,7 +817,7 @@
         clearEl(listEl);
         var jobs = Object.keys(todayJobs).map(function (k) { return todayJobs[k]; });
         jobs.sort(function (a, b) { return b.last - a.last; });
-        emptyEl.textContent = jobs.length ? (jobs.length + (jobs.length === 1 ? ' job' : ' jobs') + ' submitted today') : 'No photos submitted yet today.';
+        emptyEl.textContent = jobs.length ? (jobs.length + (jobs.length === 1 ? ' job' : ' jobs') + ' submitted by you today') : 'You have not submitted any photos yet today.';
         jobs.forEach(function (o) {
           var b = document.createElement('button');
           b.type = 'button';
@@ -879,8 +877,7 @@
       }
 
       document.getElementById('todayTile').addEventListener('click', function () { showView('today'); loadToday(); });
-      document.getElementById('todayToggle').addEventListener('click', function () { todayAllTrucks = !todayAllTrucks; loadToday(); });
-
+      
       paintPicks();
       showView('home');
     }
