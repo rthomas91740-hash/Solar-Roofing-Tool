@@ -614,6 +614,13 @@
 
           card.appendChild(img);
           card.appendChild(stampRow);
+          var pNote = metaOf(record).photoNote;
+          if (pNote) {
+            var pNoteRow = document.createElement('div');
+            pNoteRow.style.cssText = 'font-size:14px;margin-top:8px;white-space:pre-wrap;';
+            pNoteRow.textContent = 'Photo note: ' + pNote;
+            card.appendChild(pNoteRow);
+          }
         }
 
         function attempt(retriesLeft) {
@@ -728,6 +735,13 @@
       var caption = document.createElement('div');
       caption.style.cssText = 'font-size:12px;color:#444;margin-top:4px;';
       caption.textContent = parsed.subject !== '(none)' ? (parsed.type + ' - ' + parsed.subjectText) : '';
+      var photoNote = metaOf(record).photoNote;
+      var noteLine = null;
+      if (photoNote) {
+        noteLine = document.createElement('div');
+        noteLine.style.cssText = 'font-size:12px;color:#222;margin-top:3px;text-align:left;white-space:pre-wrap;';
+        noteLine.textContent = 'Note: ' + photoNote;
+      }
 
       var settled = false;
       var timer;
@@ -737,6 +751,7 @@
         clearTimeout(timer);
         wrapper.appendChild(img);
         wrapper.appendChild(caption);
+        if (noteLine) wrapper.appendChild(noteLine);
         onReady(wrapper);
       }
       img.onload = settle;
